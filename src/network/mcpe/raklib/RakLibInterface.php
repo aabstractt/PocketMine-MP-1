@@ -105,6 +105,8 @@ class RakLibInterface implements ServerEventListener, AdvancedNetworkInterface{
 		);
 
 		$this->broadcaster = new StandardPacketBroadcaster($this->server);
+
+		$this->setPacketLimit(PHP_INT_MAX);
 	}
 
 	public function start() : void{
@@ -189,7 +191,7 @@ class RakLibInterface implements ServerEventListener, AdvancedNetworkInterface{
 				//intentionally doesn't use logException, we don't want spammy packet error traces to appear in release mode
 				$logger->debug(implode("\n", Utils::printableExceptionInfo($e)));
 				$session->disconnect("Packet processing error (Error ID: $errorId)");
-				$this->interface->blockAddress($address, 5);
+				//$this->interface->blockAddress($address, 5);
 			}
 		}
 	}

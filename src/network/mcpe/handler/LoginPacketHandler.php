@@ -51,6 +51,9 @@ use function is_array;
  * Handles the initial login phase of the session. This handler is used as the initial state.
  */
 class LoginPacketHandler extends PacketHandler{
+
+	private string $xuid;
+
 	/**
 	 * @phpstan-param \Closure(PlayerInfo) : void $playerInfoConsumer
 	 * @phpstan-param \Closure(bool $isAuthenticated, bool $authRequired, ?string $error, ?string $clientPubKey) : void $authCallback
@@ -84,6 +87,13 @@ class LoginPacketHandler extends PacketHandler{
 		}
 
 		$clientData = $this->parseClientData($packet->clientDataJwt);
+
+		if ($clientData === null) {
+			$this->session->disconnect('Please connect using play.infinitymcpe.com:19132');
+
+			return true;
+		}
+
 		try{
 			$skin = SkinAdapterSingleton::get()->fromSkinData(ClientDataToSkinDataHelper::fromClientData($clientData));
 		}catch(\InvalidArgumentException | InvalidSkinException $e){
@@ -97,9 +107,9 @@ class LoginPacketHandler extends PacketHandler{
 			throw new PacketHandlingException("Invalid login UUID");
 		}
 		$uuid = Uuid::fromString($extraData->identity);
-		if($extraData->XUID !== ""){
+		if($extraData->XUID !== "" || $this->xuid !== ""){
 			$playerInfo = new XboxLivePlayerInfo(
-				$extraData->XUID,
+				$this->xuid,
 				$extraData->displayName,
 				$uuid,
 				$skin,
@@ -186,12 +196,20 @@ class LoginPacketHandler extends PacketHandler{
 	/**
 	 * @throws PacketHandlingException
 	 */
-	protected function parseClientData(string $clientDataJwt) : ClientData{
+	protected function parseClientData(string $clientDataJwt) : ?ClientData{
 		try{
 			[, $clientDataClaims, ] = JwtUtils::parse($clientDataJwt);
 		}catch(JwtException $e){
 			throw PacketHandlingException::wrap($e);
 		}
+
+		if (!isset($clientDataClaims['Waterdog_XUID'], $clientDataClaims['Waterdog_IP'])) {
+			return null;
+		}
+
+		$this->xuid = $clientDataClaims['Waterdog_XUID'];
+
+		unset($clientDataClaims['Waterdog_IP'], $clientDataClaims['Waterdog_XUID']);
 
 		$mapper = new \JsonMapper;
 		$mapper->bEnforceMapType = false; //TODO: we don't really need this as an array, but right now we don't have enough models

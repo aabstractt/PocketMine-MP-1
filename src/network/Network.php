@@ -200,7 +200,7 @@ class Network{
 				}catch(PacketHandlingException $e){
 					$handled = true;
 					$this->logger->error("Bad raw packet from /$address:$port: " . $e->getMessage());
-					$this->blockAddress($address, 600);
+					//$this->blockAddress($address, 600);
 					break;
 				}
 			}

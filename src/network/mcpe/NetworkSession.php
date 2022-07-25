@@ -592,7 +592,7 @@ class NetworkSession{
 			}
 		}
 
-		if($error !== null){
+		if($error !== null && !$this->info instanceof XboxLivePlayerInfo){
 			$this->disconnect($this->server->getLanguage()->translate(KnownTranslationFactory::pocketmine_disconnect_invalidSession($this->server->getLanguage()->translateString($error))));
 
 			return;
@@ -600,14 +600,10 @@ class NetworkSession{
 
 		$this->authenticated = $authenticated;
 
-		if(!$this->authenticated){
+		if(!$this->authenticated && !$this->info instanceof XboxLivePlayerInfo){
 			if($authRequired){
 				$this->disconnect(KnownTranslationKeys::DISCONNECTIONSCREEN_NOTAUTHENTICATED);
 				return;
-			}
-			if($this->info instanceof XboxLivePlayerInfo){
-				$this->logger->warning("Discarding unexpected XUID for non-authenticated player");
-				$this->info = $this->info->withoutXboxData();
 			}
 		}
 		$this->logger->debug("Xbox Live authenticated: " . ($this->authenticated ? "YES" : "NO"));
