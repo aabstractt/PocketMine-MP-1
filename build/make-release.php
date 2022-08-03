@@ -123,12 +123,12 @@ function main() : void{
 	echo "$currentVer will be published on release channel \"$channel\".\n";
 	echo "please add appropriate notes to the changelog and press enter...";
 	fgets(STDIN);
-	systemWrapper('git add "' . dirname(__DIR__) . '/changelogs"', "failed to stage changelog changes");
+	/*systemWrapper('git add "' . dirname(__DIR__) . '/changelogs"', "failed to stage changelog changes");
 	system('git diff --cached --quiet "' . dirname(__DIR__) . '/changelogs"', $result);
 	if($result === 0){
 		echo "error: no changelog changes detected; aborting\n";
 		exit(1);
-	}
+	}*/
 	$versionInfoPath = dirname(__DIR__) . '/src/VersionInfo.php';
 	replaceVersion($versionInfoPath, $currentVer->getBaseVersion(), false, $channel);
 	systemWrapper('git commit -m "Release ' . $currentVer->getBaseVersion() . '" --include "' . $versionInfoPath . '"', "failed to create release commit");

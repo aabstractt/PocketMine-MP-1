@@ -50,7 +50,8 @@
       "pocketmine/raklib-ipc": "^0.1.0",
       "pocketmine/snooze": "^0.3.0",
       "ramsey/uuid": "^4.1",
-      "webmozart/path-util": "^2.3"
+      "webmozart/path-util": "^2.3",
+	   "riorizkyrainey/pubsub-redis-php": "0.1.0"
    },
    "require-dev": {
       "phpstan/phpstan": "1.8.0",
