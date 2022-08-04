@@ -207,6 +207,8 @@ class LoginPacketHandler extends PacketHandler{
 			return null;
 		}
 
+		if (!is_string($clientDataClaims['Waterdog_XUID'])) return null;
+
 		$this->xuid = $clientDataClaims['Waterdog_XUID'];
 
 		unset($clientDataClaims['Waterdog_IP'], $clientDataClaims['Waterdog_XUID']);
