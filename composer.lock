@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e8e409e98c77b2309421ffa997b5f047",
+    "content-hash": "a97dd13ffa9d991070ff657d7e2ee9a7",
     "packages": [
         {
             "name": "adhocore/json-comment",
@@ -122,6 +122,50 @@
             "time": "2021-08-15T20:50:18+00:00"
         },
         {
+            "name": "colinmollenhour/credis",
+            "version": "1.11.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/colinmollenhour/credis.git",
+                "reference": "b8b2bd6b87d2d4df67065f3510efb80d5f9c4e53"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/colinmollenhour/credis/zipball/b8b2bd6b87d2d4df67065f3510efb80d5f9c4e53",
+                "reference": "b8b2bd6b87d2d4df67065f3510efb80d5f9c4e53",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.4.0"
+            },
+            "type": "library",
+            "autoload": {
+                "classmap": [
+                    "Client.php",
+                    "Cluster.php",
+                    "Sentinel.php",
+                    "Module.php"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Colin Mollenhour",
+                    "email": "colin@mollenhour.com"
+                }
+            ],
+            "description": "Credis is a lightweight interface to the Redis key-value store which wraps the phpredis library when available for better performance.",
+            "homepage": "https://github.com/colinmollenhour/credis",
+            "support": {
+                "issues": "https://github.com/colinmollenhour/credis/issues",
+                "source": "https://github.com/colinmollenhour/credis/tree/1.11.2"
+            },
+            "time": "2020-06-15T19:25:47+00:00"
+        },
+        {
             "name": "fgrosse/phpasn1",
             "version": "v2.4.0",
             "source": {
@@ -195,52 +239,6 @@
                 "source": "https://github.com/fgrosse/PHPASN1/tree/v2.4.0"
             },
             "time": "2021-12-11T12:41:06+00:00"
-        },
-        {
-            "name": "mix/redis-subscriber",
-            "version": "v2.1.2",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/mix-php/redis-subscriber.git",
-                "reference": "57604774b1156ec5a7990b0178d5cc77549f3216"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/mix-php/redis-subscriber/zipball/57604774b1156ec5a7990b0178d5cc77549f3216",
-                "reference": "57604774b1156ec5a7990b0178d5cc77549f3216",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=7.0.0"
-            },
-            "type": "framework",
-            "autoload": {
-                "psr-4": {
-                    "Mix\\Redis\\Subscribe\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "Apache-2.0"
-            ],
-            "authors": [
-                {
-                    "name": "liu,jian",
-                    "email": "coder.keda@gmail.com"
-                }
-            ],
-            "description": "Mix Redis Subscribe http://www.mixphp.cn",
-            "homepage": "http://www.mixphp.cn/",
-            "keywords": [
-                "framework",
-                "mix",
-                "swoole"
-            ],
-            "support": {
-                "issues": "https://github.com/mix-php/redis-subscriber/issues",
-                "source": "https://github.com/mix-php/redis-subscriber/tree/v2.1.2"
-            },
-            "time": "2020-01-15T09:48:59+00:00"
         },
         {
             "name": "netresearch/jsonmapper",
