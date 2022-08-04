@@ -32,6 +32,7 @@
       "ext-zlib": ">=1.2.11",
       "composer-runtime-api": "^2.0",
       "adhocore/json-comment": "^1.1",
+      "amphp/redis": "^1.0",
       "fgrosse/phpasn1": "^2.3",
       "netresearch/jsonmapper": "^4.0",
       "pocketmine/bedrock-data": "~1.9.0+bedrock-1.19.10",
@@ -50,8 +51,7 @@
       "pocketmine/raklib-ipc": "^0.1.0",
       "pocketmine/snooze": "^0.3.0",
       "ramsey/uuid": "^4.1",
-      "webmozart/path-util": "^2.3",
-	   "colinmollenhour/credis": "1.11.2"
+      "webmozart/path-util": "^2.3"
    },
    "require-dev": {
       "phpstan/phpstan": "1.8.0",
