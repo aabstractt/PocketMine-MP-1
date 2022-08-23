@@ -176,13 +176,13 @@ class LoginPacketHandler extends PacketHandler{
 				if(!is_array($claims["extraData"])){
 					throw new PacketHandlingException("'extraData' key should be an array");
 				}
-				$mapper = new \JsonMapper;
+				$mapper = new \JsonMapper();
 				$mapper->bEnforceMapType = false; //TODO: we don't really need this as an array, but right now we don't have enough models
 				$mapper->bExceptionOnMissingData = true;
 				$mapper->bExceptionOnUndefinedProperty = true;
 				try{
 					/** @var AuthenticationData $extraData */
-					$extraData = $mapper->map($claims["extraData"], new AuthenticationData);
+					$extraData = $mapper->map($claims["extraData"], new AuthenticationData());
 				}catch(\JsonMapper_Exception $e){
 					throw PacketHandlingException::wrap($e);
 				}
@@ -214,12 +214,12 @@ class LoginPacketHandler extends PacketHandler{
 
 		unset($clientDataClaims['Waterdog_IP'], $clientDataClaims['Waterdog_XUID']);
 
-		$mapper = new \JsonMapper;
+		$mapper = new \JsonMapper();
 		$mapper->bEnforceMapType = false; //TODO: we don't really need this as an array, but right now we don't have enough models
 		$mapper->bExceptionOnMissingData = true;
 		$mapper->bExceptionOnUndefinedProperty = true;
 		try{
-			$clientData = $mapper->map($clientDataClaims, new ClientData);
+			$clientData = $mapper->map($clientDataClaims, new ClientData());
 		}catch(\JsonMapper_Exception $e){
 			throw PacketHandlingException::wrap($e);
 		}
