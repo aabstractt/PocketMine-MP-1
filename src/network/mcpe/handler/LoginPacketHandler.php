@@ -238,6 +238,6 @@ class LoginPacketHandler extends PacketHandler{
 	}
 
 	protected function isCompatibleProtocol(int $protocolVersion) : bool{
-		return in_array($protocolVersion, [ProtocolInfo::CURRENT_PROTOCOL, 545, 551, 552, 554], true);
+		return $protocolVersion === ProtocolInfo::CURRENT_PROTOCOL;
 	}
 }
