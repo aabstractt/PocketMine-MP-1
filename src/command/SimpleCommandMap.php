@@ -51,6 +51,7 @@ use pocketmine\command\defaults\SaveOffCommand;
 use pocketmine\command\defaults\SaveOnCommand;
 use pocketmine\command\defaults\SayCommand;
 use pocketmine\command\defaults\SeedCommand;
+use pocketmine\command\defaults\SetViewDistanceCommand;
 use pocketmine\command\defaults\SetWorldSpawnCommand;
 use pocketmine\command\defaults\SpawnpointCommand;
 use pocketmine\command\defaults\StatusCommand;
@@ -127,7 +128,8 @@ class SimpleCommandMap implements CommandMap{
 			new TitleCommand("title"),
 			new TransferServerCommand("transferserver"),
 			new VersionCommand("version"),
-			new WhitelistCommand("whitelist")
+			new WhitelistCommand("whitelist"),
+			new SetViewDistanceCommand('setviewdistance')
 		]);
 	}
 

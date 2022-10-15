@@ -53,7 +53,7 @@ use function is_string;
  */
 class LoginPacketHandler extends PacketHandler{
 
-	private string $xuid;
+	private string $xuid = "";
 
 	/**
 	 * @phpstan-param \Closure(PlayerInfo) : void $playerInfoConsumer
