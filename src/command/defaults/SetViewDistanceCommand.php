@@ -17,6 +17,14 @@ final class SetViewDistanceCommand extends VanillaCommand {
 	 * @param string[]      $args
 	 */
 	public function execute(CommandSender $sender, string $commandLabel, array $args): void {
+		if (!$sender->hasPermission(Server::BROADCAST_CHANNEL_ADMINISTRATIVE)) {
+			$sender->sendMessage(TextFormat::RED . 'You don\'t have permissions to use this command');
+
+			self::broadcastCommandMessage($sender, 'tried use /setviewdistance', false);
+
+			return;
+		}
+
 		if (count($args) <= 0) {
 			$sender->sendMessage(TextFormat::RED . 'Usage: /' . $commandLabel . ' <distance>');
 
