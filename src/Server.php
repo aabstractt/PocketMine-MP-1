@@ -1274,6 +1274,8 @@ class Server{
 		$recipients = $recipients ?? $this->getBroadcastChannelSubscribers(self::BROADCAST_CHANNEL_USERS);
 
 		foreach($recipients as $recipient){
+			if ($recipient instanceof Player && !$recipient->isConnected()) continue;
+
 			$recipient->sendMessage($message);
 		}
 
