@@ -334,7 +334,7 @@ class InGamePacketHandler extends PacketHandler{
 			return true;
 		}
 
-		if ($this->unhandledInventoryTransactions++ >= 5) {
+		if ($this->unhandledInventoryTransactions++ >= 8) {
 			$this->session->disconnect('Sent too many packets');
 
 			(new ServerPreventCrashEvent($this->session->getDisplayName(), $this->unhandledInventoryTransactions))->call();
