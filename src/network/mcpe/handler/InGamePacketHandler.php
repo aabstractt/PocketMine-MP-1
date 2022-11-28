@@ -351,6 +351,9 @@ class InGamePacketHandler extends PacketHandler{
 
 		$isCraftingPart = false;
 		$converter = TypeConverter::getInstance();
+
+
+
 		foreach($data->getActions() as $networkInventoryAction){
 			if(
 				$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_TODO || (
