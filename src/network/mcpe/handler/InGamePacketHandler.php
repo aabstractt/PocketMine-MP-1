@@ -334,13 +334,7 @@ class InGamePacketHandler extends PacketHandler{
 			return true;
 		}
 
-		if ($this->unhandledInventoryTransactions++ >= 8) {
-			$this->session->disconnect('Sent too many packets');
-
-			(new ServerPreventCrashEvent($this->session->getDisplayName(), $this->unhandledInventoryTransactions))->call();
-		} else {
-			$this->inventoryManager->syncAll();
-		}
+		$this->inventoryManager->syncAll();
 
 		return false;
 	}
