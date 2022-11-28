@@ -31,6 +31,7 @@ use pocketmine\entity\animation\ConsumingItemAnimation;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\InvalidSkinException;
 use pocketmine\event\player\PlayerEditBookEvent;
+use pocketmine\event\server\ServerPreventCrashEvent;
 use pocketmine\inventory\transaction\action\InventoryAction;
 use pocketmine\inventory\transaction\CraftingTransaction;
 use pocketmine\inventory\transaction\InventoryTransaction;
@@ -335,6 +336,8 @@ class InGamePacketHandler extends PacketHandler{
 
 		if ($this->unhandledInventoryTransactions++ >= 5) {
 			$this->session->disconnect('Sent too many packets');
+
+			(new ServerPreventCrashEvent($this->session->getDisplayName(), $this->unhandledInventoryTransactions))->call();
 		} else {
 			$this->inventoryManager->syncAll();
 		}
