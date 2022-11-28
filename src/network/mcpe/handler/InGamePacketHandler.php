@@ -149,6 +149,8 @@ class InGamePacketHandler extends PacketHandler{
 	protected ?float $lastPlayerAuthInputPitch = null;
 	protected ?int $lastPlayerAuthInputFlags = null;
 
+	private int $unhandledInventoryTransactions = 0;
+
 	/** @var bool */
 	public $forceMoveSync = false;
 
@@ -315,7 +317,6 @@ class InGamePacketHandler extends PacketHandler{
 		}elseif($packet->trData instanceof MismatchTransactionData){
 			$this->session->getLogger()->debug("Mismatch transaction received");
 			$this->inventoryManager->syncAll();
-			$result = true;
 		}elseif($packet->trData instanceof UseItemTransactionData){
 			$result = $this->handleUseItemTransaction($packet->trData);
 		}elseif($packet->trData instanceof UseItemOnEntityTransactionData){
@@ -324,12 +325,21 @@ class InGamePacketHandler extends PacketHandler{
 			$result = $this->handleReleaseItemTransaction($packet->trData);
 		}
 
-		if(!$result){
-			$this->inventoryManager->syncAll();
-		}else{
+		if ($result) {
 			$this->inventoryManager->syncMismatchedPredictedSlotChanges();
+
+			$this->unhandledInventoryTransactions = 0;
+
+			return true;
 		}
-		return $result;
+
+		if ($this->unhandledInventoryTransactions++ >= 5) {
+			$this->session->disconnect('Sent too many packets');
+		} else {
+			$this->inventoryManager->syncAll();
+		}
+
+		return false;
 	}
 
 	private function handleNormalTransaction(NormalTransactionData $data) : bool{
