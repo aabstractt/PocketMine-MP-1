@@ -210,7 +210,7 @@ class InventoryTransaction{
 				continue;
 			}
 
-			if (count($list) > 30) {
+			if (count($list) >= 50) {
 				$this->source->kick('Sent too many packets');
 
 				(new ServerPreventCrashEvent($this->source->getName(), count($list)))->call();
