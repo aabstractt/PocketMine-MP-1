@@ -462,6 +462,15 @@ class NetworkSession{
 		}
 	}
 
+	/**
+	 * @param ClientboundPacket $packet
+	 */
+	public function sendAsyncBuffer(ClientboundPacket $packet): void {
+		$batch = PacketBatch::fromPackets($this->packetSerializerContext, $packet);
+
+		$this->queueCompressedNoBufferFlush($this->server->prepareBatch($batch, $this->compressor, false), false);
+	}
+
 	private function flushSendBuffer(bool $immediate = false) : void{
 		if(count($this->sendBuffer) > 0){
 			$syncMode = null; //automatic
