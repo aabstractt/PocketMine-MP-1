@@ -31,6 +31,7 @@ use pocketmine\entity\animation\ConsumingItemAnimation;
 use pocketmine\entity\Attribute;
 use pocketmine\entity\InvalidSkinException;
 use pocketmine\event\player\PlayerEditBookEvent;
+use pocketmine\event\server\ServerPreventCrashEvent;
 use pocketmine\inventory\transaction\action\InventoryAction;
 use pocketmine\inventory\transaction\CraftingTransaction;
 use pocketmine\inventory\transaction\InventoryTransaction;
@@ -148,6 +149,8 @@ class InGamePacketHandler extends PacketHandler{
 	protected ?float $lastPlayerAuthInputYaw = null;
 	protected ?float $lastPlayerAuthInputPitch = null;
 	protected ?int $lastPlayerAuthInputFlags = null;
+
+	private int $unhandledInventoryTransactions = 0;
 
 	/** @var bool */
 	public $forceMoveSync = false;
@@ -315,7 +318,6 @@ class InGamePacketHandler extends PacketHandler{
 		}elseif($packet->trData instanceof MismatchTransactionData){
 			$this->session->getLogger()->debug("Mismatch transaction received");
 			$this->inventoryManager->syncAll();
-			$result = true;
 		}elseif($packet->trData instanceof UseItemTransactionData){
 			$result = $this->handleUseItemTransaction($packet->trData);
 		}elseif($packet->trData instanceof UseItemOnEntityTransactionData){
@@ -324,12 +326,17 @@ class InGamePacketHandler extends PacketHandler{
 			$result = $this->handleReleaseItemTransaction($packet->trData);
 		}
 
-		if(!$result){
-			$this->inventoryManager->syncAll();
-		}else{
+		if ($result) {
 			$this->inventoryManager->syncMismatchedPredictedSlotChanges();
+
+			$this->unhandledInventoryTransactions = 0;
+
+			return true;
 		}
-		return $result;
+
+		$this->inventoryManager->syncAll();
+
+		return false;
 	}
 
 	private function handleNormalTransaction(NormalTransactionData $data) : bool{
@@ -338,6 +345,7 @@ class InGamePacketHandler extends PacketHandler{
 
 		$isCraftingPart = false;
 		$converter = TypeConverter::getInstance();
+
 		foreach($data->getActions() as $networkInventoryAction){
 			if(
 				$networkInventoryAction->sourceType === NetworkInventoryAction::SOURCE_TODO || (

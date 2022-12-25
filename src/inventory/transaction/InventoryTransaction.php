@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace pocketmine\inventory\transaction;
 
 use pocketmine\event\inventory\InventoryTransactionEvent;
+use pocketmine\event\server\ServerPreventCrashEvent;
 use pocketmine\inventory\Inventory;
 use pocketmine\inventory\transaction\action\InventoryAction;
 use pocketmine\inventory\transaction\action\SlotChangeAction;
@@ -207,6 +208,14 @@ class InventoryTransaction{
 		foreach($slotChanges as $hash => $list){
 			if(count($list) === 1){ //No need to compact slot changes if there is only one on this slot
 				continue;
+			}
+
+			if (count($list) >= 50) {
+				$this->source->kick('Sent too many packets');
+
+				(new ServerPreventCrashEvent($this->source->getName(), count($list)))->call();
+
+				break;
 			}
 
 			$inventory = $inventories[$hash];
