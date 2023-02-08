@@ -90,6 +90,8 @@ use pocketmine\network\mcpe\protocol\TakeItemActorPacket;
 use pocketmine\network\mcpe\protocol\TextPacket;
 use pocketmine\network\mcpe\protocol\ToastRequestPacket;
 use pocketmine\network\mcpe\protocol\TransferPacket;
+use pocketmine\network\mcpe\protocol\types\AbilitiesData;
+use pocketmine\network\mcpe\protocol\types\AbilitiesLayer;
 use pocketmine\network\mcpe\protocol\types\BlockPosition;
 use pocketmine\network\mcpe\protocol\types\command\CommandData;
 use pocketmine\network\mcpe\protocol\types\command\CommandEnum;
@@ -103,7 +105,6 @@ use pocketmine\network\mcpe\protocol\types\inventory\ContainerIds;
 use pocketmine\network\mcpe\protocol\types\inventory\ItemStackWrapper;
 use pocketmine\network\mcpe\protocol\types\PlayerListEntry;
 use pocketmine\network\mcpe\protocol\types\PlayerPermissions;
-use pocketmine\network\mcpe\protocol\types\UpdateAbilitiesPacketLayer;
 use pocketmine\network\mcpe\protocol\UpdateAbilitiesPacket;
 use pocketmine\network\mcpe\protocol\UpdateAdventureSettingsPacket;
 use pocketmine\network\mcpe\protocol\UpdateAttributesPacket;
@@ -456,6 +457,9 @@ class NetworkSession{
 	}
 
 	public function sendDataPacket(ClientboundPacket $packet, bool $immediate = false) : bool{
+		if(!$this->connected){
+			return false;
+		}
 		//Basic safety restriction. TODO: improve this
 		if(!$this->loggedIn && !$packet->canBeSentBeforeLogin()){
 			throw new \InvalidArgumentException("Attempted to send " . get_class($packet) . " to " . $this->getDisplayName() . " too early");
@@ -582,17 +586,24 @@ class NetworkSession{
 			$this->disconnectGuard = true;
 			$func();
 			$this->disconnectGuard = false;
+			$this->flushSendBuffer(true);
+			$this->sender->close("");
 			foreach($this->disposeHooks as $callback){
 				$callback();
 			}
 			$this->disposeHooks->clear();
 			$this->setHandler(null);
 			$this->connected = false;
-			$this->manager->remove($this);
 			$this->logger->info("Session closed due to $reason");
-
-			$this->invManager = null; //break cycles - TODO: this really ought to be deferred until it's safe
 		}
+	}
+
+	/**
+	 * Performs actions after the session has been disconnected. By this point, nothing should be interacting with the
+	 * session, so it's safe to destroy any cycles and perform destructive cleanup.
+	 */
+	private function dispose() : void{
+		$this->invManager = null;
 	}
 
 	/**
@@ -600,10 +611,12 @@ class NetworkSession{
 	 */
 	public function disconnect(string $reason, bool $notify = true) : void{
 		$this->tryDisconnect(function() use ($reason, $notify) : void{
+			if($notify){
+				$this->sendDataPacket(DisconnectPacket::create($reason));
+			}
 			if($this->player !== null){
 				$this->player->onPostDisconnect($reason, null);
 			}
-			$this->doServerDisconnect($reason, $notify);
 		}, $reason);
 	}
 
@@ -616,7 +629,6 @@ class NetworkSession{
 			if($this->player !== null){
 				$this->player->onPostDisconnect($reason, null);
 			}
-			$this->doServerDisconnect($reason, false);
 		}, $reason);
 	}
 
@@ -625,19 +637,8 @@ class NetworkSession{
 	 */
 	public function onPlayerDestroyed(string $reason) : void{
 		$this->tryDisconnect(function() use ($reason) : void{
-			$this->doServerDisconnect($reason, true);
+			$this->sendDataPacket(DisconnectPacket::create($reason));
 		}, $reason);
-	}
-
-	/**
-	 * Internal helper function used to handle server disconnections.
-	 */
-	private function doServerDisconnect(string $reason, bool $notify = true) : void{
-		if($notify){
-			$this->sendDataPacket(DisconnectPacket::create($reason !== "" ? $reason : null), true);
-		}
-
-		$this->sender->close($notify ? $reason : "");
 	}
 
 	/**
@@ -719,7 +720,7 @@ class NetworkSession{
 		//TODO: we shouldn't be loading player data here at all, but right now we don't have any choice :(
 		$this->cachedOfflinePlayerData = $this->server->getOfflinePlayerData($this->info->getUsername());
 		if($checkXUID){
-			$recordedXUID = $this->cachedOfflinePlayerData !== null ? $this->cachedOfflinePlayerData->getTag("LastKnownXUID") : null;
+			$recordedXUID = $this->cachedOfflinePlayerData !== null ? $this->cachedOfflinePlayerData->getTag(Player::TAG_LAST_KNOWN_XUID) : null;
 			if(!($recordedXUID instanceof StringTag)){
 				$this->logger->debug("No previous XUID recorded, no choice but to trust this player");
 			}elseif(!$kickForXUIDMismatch($recordedXUID->getValue())){
@@ -780,9 +781,9 @@ class NetworkSession{
 		$this->setHandler(new InGamePacketHandler($this->player, $this, $this->invManager));
 	}
 
-	public function onServerDeath() : void{
+	public function onServerDeath(Translatable|string $deathMessage) : void{
 		if($this->handler instanceof InGamePacketHandler){ //TODO: this is a bad fix for pre-spawn death, this shouldn't be reachable at all at this stage :(
-			$this->setHandler(new DeathPacketHandler($this->player, $this, $this->invManager ?? throw new AssumptionFailedError()));
+			$this->setHandler(new DeathPacketHandler($this->player, $this, $this->invManager ?? throw new AssumptionFailedError(), $deathMessage));
 		}
 	}
 
@@ -853,33 +854,33 @@ class NetworkSession{
 
 		//ALL of these need to be set for the base layer, otherwise the client will cry
 		$boolAbilities = [
-			UpdateAbilitiesPacketLayer::ABILITY_ALLOW_FLIGHT => $for->getAllowFlight(),
-			UpdateAbilitiesPacketLayer::ABILITY_FLYING => $for->isFlying(),
-			UpdateAbilitiesPacketLayer::ABILITY_NO_CLIP => !$for->hasBlockCollision(),
-			UpdateAbilitiesPacketLayer::ABILITY_OPERATOR => $isOp,
-			UpdateAbilitiesPacketLayer::ABILITY_TELEPORT => $for->hasPermission(DefaultPermissionNames::COMMAND_TELEPORT),
-			UpdateAbilitiesPacketLayer::ABILITY_INVULNERABLE => $for->isCreative(),
-			UpdateAbilitiesPacketLayer::ABILITY_MUTED => false,
-			UpdateAbilitiesPacketLayer::ABILITY_WORLD_BUILDER => false,
-			UpdateAbilitiesPacketLayer::ABILITY_INFINITE_RESOURCES => !$for->hasFiniteResources(),
-			UpdateAbilitiesPacketLayer::ABILITY_LIGHTNING => false,
-			UpdateAbilitiesPacketLayer::ABILITY_BUILD => !$for->isSpectator(),
-			UpdateAbilitiesPacketLayer::ABILITY_MINE => !$for->isSpectator(),
-			UpdateAbilitiesPacketLayer::ABILITY_DOORS_AND_SWITCHES => !$for->isSpectator(),
-			UpdateAbilitiesPacketLayer::ABILITY_OPEN_CONTAINERS => !$for->isSpectator(),
-			UpdateAbilitiesPacketLayer::ABILITY_ATTACK_PLAYERS => !$for->isSpectator(),
-			UpdateAbilitiesPacketLayer::ABILITY_ATTACK_MOBS => !$for->isSpectator(),
+			AbilitiesLayer::ABILITY_ALLOW_FLIGHT => $for->getAllowFlight(),
+			AbilitiesLayer::ABILITY_FLYING => $for->isFlying(),
+			AbilitiesLayer::ABILITY_NO_CLIP => !$for->hasBlockCollision(),
+			AbilitiesLayer::ABILITY_OPERATOR => $isOp,
+			AbilitiesLayer::ABILITY_TELEPORT => $for->hasPermission(DefaultPermissionNames::COMMAND_TELEPORT_SELF),
+			AbilitiesLayer::ABILITY_INVULNERABLE => $for->isCreative(),
+			AbilitiesLayer::ABILITY_MUTED => false,
+			AbilitiesLayer::ABILITY_WORLD_BUILDER => false,
+			AbilitiesLayer::ABILITY_INFINITE_RESOURCES => !$for->hasFiniteResources(),
+			AbilitiesLayer::ABILITY_LIGHTNING => false,
+			AbilitiesLayer::ABILITY_BUILD => !$for->isSpectator(),
+			AbilitiesLayer::ABILITY_MINE => !$for->isSpectator(),
+			AbilitiesLayer::ABILITY_DOORS_AND_SWITCHES => !$for->isSpectator(),
+			AbilitiesLayer::ABILITY_OPEN_CONTAINERS => !$for->isSpectator(),
+			AbilitiesLayer::ABILITY_ATTACK_PLAYERS => !$for->isSpectator(),
+			AbilitiesLayer::ABILITY_ATTACK_MOBS => !$for->isSpectator(),
 		];
 
-		$this->sendDataPacket(UpdateAbilitiesPacket::create(
+		$this->sendDataPacket(UpdateAbilitiesPacket::create(new AbilitiesData(
 			$isOp ? CommandPermissions::OPERATOR : CommandPermissions::NORMAL,
 			$isOp ? PlayerPermissions::OPERATOR : PlayerPermissions::MEMBER,
 			$for->getId(),
 			[
 				//TODO: dynamic flying speed! FINALLY!!!!!!!!!!!!!!!!!
-				new UpdateAbilitiesPacketLayer(UpdateAbilitiesPacketLayer::LAYER_BASE, $boolAbilities, 0.05, 0.1),
+				new AbilitiesLayer(AbilitiesLayer::LAYER_BASE, $boolAbilities, 0.05, 0.1),
 			]
-		));
+		)));
 	}
 
 	public function syncAdventureSettings() : void{
@@ -967,15 +968,19 @@ class NetworkSession{
 		$this->sendDataPacket(AvailableCommandsPacket::create($commandData, [], [], []));
 	}
 
-	public function onRawChatMessage(string $message) : void{
-		$this->sendDataPacket(TextPacket::raw($message));
-	}
-
-	/**
-	 * @param string[] $parameters
-	 */
-	public function onTranslatedChatMessage(string $key, array $parameters) : void{
-		$this->sendDataPacket(TextPacket::translation($key, $parameters));
+	public function onChatMessage(Translatable|string $message) : void{
+		if($message instanceof Translatable){
+			$language = $this->player->getLanguage();
+			if(!$this->server->isLanguageForced()){
+				//we can't send nested translations to the client, so make sure they are always pre-translated by the server
+				$parameters = array_map(fn(string|Translatable $p) => $p instanceof Translatable ? $language->translate($p) : $p, $message->getParameters());
+				$this->sendDataPacket(TextPacket::translation($language->translateString($message->getText(), $parameters, "pocketmine."), $parameters));
+			}else{
+				$this->sendDataPacket(TextPacket::raw($language->translate($message)));
+			}
+		}else{
+			$this->sendDataPacket(TextPacket::raw($message));
+		}
 	}
 
 	/**
@@ -1144,6 +1149,11 @@ class NetworkSession{
 	}
 
 	public function tick() : void{
+		if(!$this->isConnected()){
+			$this->dispose();
+			return;
+		}
+
 		if($this->info === null){
 			if(time() >= $this->connectTime + 10){
 				$this->disconnect("Login timeout");

@@ -26,6 +26,7 @@ namespace pocketmine\network\mcpe\handler;
 use pocketmine\block\BaseSign;
 use pocketmine\block\ItemFrame;
 use pocketmine\block\Lectern;
+use pocketmine\block\tile\Sign;
 use pocketmine\block\utils\SignText;
 use pocketmine\entity\animation\ConsumingItemAnimation;
 use pocketmine\entity\Attribute;
@@ -123,8 +124,8 @@ use function max;
 use function mb_strlen;
 use function microtime;
 use function sprintf;
+use function str_starts_with;
 use function strlen;
-use function strpos;
 use const JSON_THROW_ON_ERROR;
 
 /**
@@ -150,6 +151,8 @@ class InGamePacketHandler extends PacketHandler{
 
 	/** @var bool */
 	public $forceMoveSync = false;
+
+	protected ?string $lastRequestedFullSkinId = null;
 
 	public function __construct(
 		private Player $player,
@@ -673,7 +676,7 @@ class InGamePacketHandler extends PacketHandler{
 		if(!($nbt instanceof CompoundTag)) throw new AssumptionFailedError("PHPStan should ensure this is a CompoundTag"); //for phpstorm's benefit
 
 		if($block instanceof BaseSign){
-			if(($textBlobTag = $nbt->getTag("Text")) instanceof StringTag){
+			if(($textBlobTag = $nbt->getTag(Sign::TAG_TEXT_BLOB)) instanceof StringTag){
 				try{
 					$text = SignText::fromBlob($textBlobTag->getValue());
 				}catch(\InvalidArgumentException $e){
@@ -744,7 +747,7 @@ class InGamePacketHandler extends PacketHandler{
 	}
 
 	public function handleCommandRequest(CommandRequestPacket $packet) : bool{
-		if(strpos($packet->command, '/') === 0){
+		if(str_starts_with($packet->command, '/')){
 			$this->player->chat($packet->command);
 			return true;
 		}
@@ -756,6 +759,15 @@ class InGamePacketHandler extends PacketHandler{
 	}
 
 	public function handlePlayerSkin(PlayerSkinPacket $packet) : bool{
+		if($packet->skin->getFullSkinId() === $this->lastRequestedFullSkinId){
+			//TODO: HACK! In 1.19.60, the client sends its skin back to us if we sent it a skin different from the one
+			//it's using. We need to prevent this from causing a feedback loop.
+			$this->session->getLogger()->debug("Refused duplicate skin change request");
+			return true;
+		}
+		$this->lastRequestedFullSkinId = $packet->skin->getFullSkinId();
+
+		$this->session->getLogger()->debug("Processing skin change request");
 		try{
 			$skin = SkinAdapterSingleton::get()->fromSkinData($packet->skin);
 		}catch(InvalidSkinException $e){
