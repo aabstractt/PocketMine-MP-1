@@ -154,6 +154,10 @@ class InGamePacketHandler extends PacketHandler{
 
 	protected ?string $lastRequestedFullSkinId = null;
 
+	private float $lastBlockBreakError = 0.0;
+	private ?Vector3 $lastVector = null;
+	private int $warnings = 0;
+
 	public function __construct(
 		private Player $player,
 		private NetworkSession $session,
@@ -516,6 +520,24 @@ class InGamePacketHandler extends PacketHandler{
 				$this->session->sendDataPacket($packet);
 			}
 		}
+
+		$now = microtime(true);
+		if ($now - $this->lastBlockBreakError > 1.0) return;
+
+		$this->lastBlockBreakError = $now;
+
+		$vec = $this->lastVector;
+		$this->lastVector = $blockPos;
+
+		if ($vec === null) return;
+
+		if ($vec->getFloorZ() !== $blockPos->getFloorZ()) return;
+		if ($vec->getFloorX() !== $blockPos->getFloorX()) return;
+		if ($vec->getFloorY() === $blockPos->getFloorY()) return;
+
+		if ($this->warnings++ <= 10) return;
+		
+		$this->session->disconnect(TextFormat::RED . 'Sending many packets');
 	}
 
 	private function handleUseItemOnEntityTransaction(UseItemOnEntityTransactionData $data) : bool{
