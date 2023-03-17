@@ -25,7 +25,6 @@ namespace pocketmine\network\mcpe\handler;
 
 use pocketmine\entity\InvalidSkinException;
 use pocketmine\event\player\PlayerPreLoginEvent;
-use pocketmine\lang\KnownTranslationFactory;
 use pocketmine\lang\KnownTranslationKeys;
 use pocketmine\network\mcpe\auth\ProcessLoginTask;
 use pocketmine\network\mcpe\convert\SkinAdapterSingleton;
@@ -33,7 +32,6 @@ use pocketmine\network\mcpe\JwtException;
 use pocketmine\network\mcpe\JwtUtils;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\protocol\LoginPacket;
-use pocketmine\network\mcpe\protocol\PlayStatusPacket;
 use pocketmine\network\mcpe\protocol\types\login\AuthenticationData;
 use pocketmine\network\mcpe\protocol\types\login\ClientData;
 use pocketmine\network\mcpe\protocol\types\login\ClientDataToSkinDataHelper;
@@ -79,26 +77,6 @@ class LoginPacketHandler extends PacketHandler{
 
 		if ($clientData === null) {
 			$this->session->disconnect('Please connect using play.infinitymcpe.com:19132');
-
-			return true;
-		}
-
-		//TODO: REMOVE THIS
-		//Mojang forgot to bump the protocol version when they changed protocol in 1.19.62. Check the game version instead.
-		if(preg_match('/^(\d+)\.(\d+)\.(\d+)/', $clientData->GameVersion, $matches) !== 1){
-			throw new PacketHandlingException("Invalid game version format, expected at least 3 digits");
-		}
-		$major = (int) $matches[1];
-		$minor = (int) $matches[2];
-		$patch = (int) $matches[3];
-		if($major === 1 && $minor === 19 && $patch < 62){
-			$this->session->sendDataPacket(PlayStatusPacket::create(PlayStatusPacket::LOGIN_FAILED_CLIENT), true);
-
-			//This pocketmine disconnect message will only be seen by the console (PlayStatusPacket causes the messages to be shown for the client)
-			$this->session->disconnect(
-				$this->server->getLanguage()->translate(KnownTranslationFactory::pocketmine_disconnect_incompatibleProtocol("$packet->protocol (< v1.19.62)")),
-				false
-			);
 
 			return true;
 		}
