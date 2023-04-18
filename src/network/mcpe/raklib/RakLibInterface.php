@@ -53,6 +53,7 @@ use function implode;
 use function mt_rand;
 use function random_bytes;
 use function rtrim;
+use function str_split;
 use function substr;
 use const PHP_INT_MAX;
 
@@ -192,10 +193,11 @@ class RakLibInterface implements ServerEventListener, AdvancedNetworkInterface{
 			$session = $this->sessions[$sessionId];
 			$address = $session->getIp();
 			$buf = substr($packet, 1);
+			$name = $session->getDisplayName();
 			try{
 				$session->handleEncoded($buf);
 			}catch(PacketHandlingException $e){
-				$errorId = bin2hex(random_bytes(6));
+				$errorId = implode("-", str_split(bin2hex(random_bytes(6)), 4));
 
 				$logger = $session->getLogger();
 				$logger->error("Bad packet (error ID $errorId): " . $e->getMessage());
@@ -203,7 +205,12 @@ class RakLibInterface implements ServerEventListener, AdvancedNetworkInterface{
 				//intentionally doesn't use logException, we don't want spammy packet error traces to appear in release mode
 				$logger->debug(implode("\n", Utils::printableExceptionInfo($e)));
 				$session->disconnect("Packet processing error (Error ID: $errorId)");
-				//$this->interface->blockAddress($address, 5);
+
+				$this->interface->blockAddress($address, 5);
+			}catch(\Throwable $e){
+				//record the name of the player who caused the crash, to make it easier to find the reproducing steps
+				$this->server->getLogger()->emergency("Crash occurred while handling a packet from session: $name");
+				throw $e;
 			}
 		}
 	}

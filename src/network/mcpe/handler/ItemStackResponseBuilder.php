@@ -24,6 +24,7 @@ declare(strict_types=1);
 namespace pocketmine\network\mcpe\handler;
 
 use pocketmine\inventory\Inventory;
+use pocketmine\item\Durable;
 use pocketmine\network\mcpe\InventoryManager;
 use pocketmine\network\mcpe\protocol\types\inventory\ContainerUIIds;
 use pocketmine\network\mcpe\protocol\types\inventory\stackresponse\ItemStackResponse;
@@ -52,6 +53,10 @@ final class ItemStackResponseBuilder{
 	 * @phpstan-return array{Inventory, int}
 	 */
 	private function getInventoryAndSlot(int $containerInterfaceId, int $slotId) : ?array{
+		if($containerInterfaceId === ContainerUIIds::OFFHAND && $slotId === 1){
+			//TODO: HACK! The client sends an incorrect slot ID for the offhand as of 1.19.70
+			$slotId = 0;
+		}
 		$windowId = ItemStackContainerIdTranslator::translate($containerInterfaceId, $this->inventoryManager->getCurrentWindowId());
 		$windowAndSlot = $this->inventoryManager->locateWindowAndSlot($windowId, $slotId);
 		if($windowAndSlot === null){
@@ -91,7 +96,7 @@ final class ItemStackResponseBuilder{
 					$item->getCount(),
 					$itemStackInfo->getStackId(),
 					$item->getCustomName(),
-					0
+					$item instanceof Durable ? $item->getDamage() : 0,
 				);
 			}
 		}
