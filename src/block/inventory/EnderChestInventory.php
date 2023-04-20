@@ -40,7 +40,7 @@ use pocketmine\world\sound\Sound;
  */
 class EnderChestInventory extends DelegateInventory implements BlockInventory{
 	use AnimatedBlockInventoryTrait {
-		onClose as animatedBlockInventoryTrait_onClose;
+		AnimatedBlockInventoryTrait::onClose as animatedBlockInventoryTrait_onClose;
 	}
 
 	public function __construct(
@@ -82,7 +82,7 @@ class EnderChestInventory extends DelegateInventory implements BlockInventory{
 		$this->animatedBlockInventoryTrait_onClose($who);
 		$enderChest = $this->getHolder()->getWorld()->getTile($this->getHolder());
 		if($enderChest instanceof EnderChest){
-			$enderChest->setViewerCount($enderChest->getViewerCount() - 1);
+			$enderChest->setViewerCount(max(0, $enderChest->getViewerCount() - 1));
 		}
 	}
 }
