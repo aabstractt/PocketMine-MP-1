@@ -23,7 +23,7 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\data\runtime\RuntimeDataDescriber;
+use pocketmine\block\utils\BlockDataSerializer;
 use pocketmine\event\block\BlockMeltEvent;
 use function mt_rand;
 
@@ -32,8 +32,16 @@ class FrostedIce extends Ice{
 
 	protected int $age = 0;
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->boundedInt(2, 0, self::MAX_AGE, $this->age);
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->age = BlockDataSerializer::readBoundedInt("age", $stateMeta, 0, self::MAX_AGE);
+	}
+
+	protected function writeStateToMeta() : int{
+		return $this->age;
+	}
+
+	public function getStateBitmask() : int{
+		return 0b11;
 	}
 
 	public function getAge() : int{ return $this->age; }

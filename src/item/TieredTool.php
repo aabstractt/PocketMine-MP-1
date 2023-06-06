@@ -24,7 +24,9 @@ declare(strict_types=1);
 namespace pocketmine\item;
 
 abstract class TieredTool extends Tool{
-	protected ToolTier $tier;
+
+	/** @var ToolTier */
+	protected $tier;
 
 	public function __construct(ItemIdentifier $identifier, string $name, ToolTier $tier){
 		parent::__construct($identifier, $name);
@@ -49,9 +51,5 @@ abstract class TieredTool extends Tool{
 		}
 
 		return 0;
-	}
-
-	public function isFireProof() : bool{
-		return $this->tier->equals(ToolTier::NETHERITE());
 	}
 }

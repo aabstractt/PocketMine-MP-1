@@ -23,17 +23,13 @@ declare(strict_types=1);
 
 namespace pocketmine\network\mcpe\raklib;
 
-use pmmp\thread\Thread as NativeThread;
-use pmmp\thread\ThreadSafeArray;
-use pocketmine\snooze\SleeperHandlerEntry;
-use pocketmine\thread\log\ThreadSafeLogger;
-use pocketmine\thread\NonThreadSafeValue;
+use pocketmine\snooze\SleeperNotifier;
 use pocketmine\thread\Thread;
+use raklib\generic\Socket;
 use raklib\generic\SocketException;
 use raklib\server\ipc\RakLibToUserThreadMessageSender;
 use raklib\server\ipc\UserToRakLibThreadMessageReceiver;
 use raklib\server\Server;
-use raklib\server\ServerSocket;
 use raklib\server\SimpleProtocolAcceptor;
 use raklib\utils\ExceptionTraceCleaner;
 use raklib\utils\InternetAddress;
@@ -41,32 +37,65 @@ use function error_get_last;
 use function gc_enable;
 use function ini_set;
 use function register_shutdown_function;
+use const PTHREADS_INHERIT_NONE;
 
 class RakLibServer extends Thread{
-	protected bool $cleanShutdown = false;
-	protected bool $ready = false;
-	protected string $mainPath;
-	/** @phpstan-var NonThreadSafeValue<RakLibThreadCrashInfo>|null */
-	public ?NonThreadSafeValue $crashInfo = null;
-	/** @phpstan-var NonThreadSafeValue<InternetAddress> */
-	protected NonThreadSafeValue $address;
+	private InternetAddress $address;
 
-	/**
-	 * @phpstan-param ThreadSafeArray<int, string> $mainToThreadBuffer
-	 * @phpstan-param ThreadSafeArray<int, string> $threadToMainBuffer
-	 */
+	/** @var \ThreadedLogger */
+	protected $logger;
+
+	/** @var bool */
+	protected $cleanShutdown = false;
+	/** @var bool */
+	protected $ready = false;
+
+	/** @var \Threaded */
+	protected $mainToThreadBuffer;
+	/** @var \Threaded */
+	protected $threadToMainBuffer;
+
+	/** @var string */
+	protected $mainPath;
+
+	/** @var int */
+	protected $serverId;
+	/** @var int */
+	protected $maxMtuSize;
+
+	private int $protocolVersion;
+
+	/** @var SleeperNotifier */
+	protected $mainThreadNotifier;
+
+	/** @var RakLibThreadCrashInfo|null */
+	public $crashInfo = null;
+
 	public function __construct(
-		protected ThreadSafeLogger $logger,
-		protected ThreadSafeArray $mainToThreadBuffer,
-		protected ThreadSafeArray $threadToMainBuffer,
+		\ThreadedLogger $logger,
+		\Threaded $mainToThreadBuffer,
+		\Threaded $threadToMainBuffer,
 		InternetAddress $address,
-		protected int $serverId,
-		protected int $maxMtuSize,
-		protected int $protocolVersion,
-		protected SleeperHandlerEntry $sleeperEntry
+		int $serverId,
+		int $maxMtuSize,
+		int $protocolVersion,
+		SleeperNotifier $sleeper
 	){
+		$this->address = $address;
+
+		$this->serverId = $serverId;
+		$this->maxMtuSize = $maxMtuSize;
+
+		$this->logger = $logger;
+
+		$this->mainToThreadBuffer = $mainToThreadBuffer;
+		$this->threadToMainBuffer = $threadToMainBuffer;
+
 		$this->mainPath = \pocketmine\PATH;
-		$this->address = new NonThreadSafeValue($address);
+
+		$this->protocolVersion = $protocolVersion;
+
+		$this->mainThreadNotifier = $sleeper;
 	}
 
 	/**
@@ -86,23 +115,23 @@ class RakLibServer extends Thread{
 	}
 
 	public function getCrashInfo() : ?RakLibThreadCrashInfo{
-		return $this->crashInfo?->deserialize();
+		return $this->crashInfo;
 	}
 
 	private function setCrashInfo(RakLibThreadCrashInfo $info) : void{
-		$this->synchronized(function() use ($info) : void{
-			$this->crashInfo = new NonThreadSafeValue($info);
+		$this->synchronized(function(RakLibThreadCrashInfo $info) : void{
+			$this->crashInfo = $info;
 			$this->notify();
-		});
+		}, $info);
 	}
 
-	public function startAndWait(int $options = NativeThread::INHERIT_NONE) : void{
+	public function startAndWait(int $options = PTHREADS_INHERIT_NONE) : void{
 		$this->start($options);
 		$this->synchronized(function() : void{
 			while(!$this->ready && $this->crashInfo === null){
 				$this->wait();
 			}
-			$crashInfo = $this->crashInfo?->deserialize();
+			$crashInfo = $this->crashInfo;
 			if($crashInfo !== null){
 				if($crashInfo->getClass() === SocketException::class){
 					throw new SocketException($crashInfo->getMessage());
@@ -121,7 +150,7 @@ class RakLibServer extends Thread{
 			register_shutdown_function([$this, "shutdownHandler"]);
 
 			try{
-				$socket = new ServerSocket($this->address->deserialize());
+				$socket = new Socket($this->address);
 			}catch(SocketException $e){
 				$this->setCrashInfo(RakLibThreadCrashInfo::fromThrowable($e));
 				return;
@@ -133,7 +162,7 @@ class RakLibServer extends Thread{
 				$this->maxMtuSize,
 				new SimpleProtocolAcceptor($this->protocolVersion),
 				new UserToRakLibThreadMessageReceiver(new PthreadsChannelReader($this->mainToThreadBuffer)),
-				new RakLibToUserThreadMessageSender(new SnoozeAwarePthreadsChannelWriter($this->threadToMainBuffer, $this->sleeperEntry->createNotifier())),
+				new RakLibToUserThreadMessageSender(new SnoozeAwarePthreadsChannelWriter($this->threadToMainBuffer, $this->mainThreadNotifier)),
 				new ExceptionTraceCleaner($this->mainPath)
 			);
 			$this->synchronized(function() : void{

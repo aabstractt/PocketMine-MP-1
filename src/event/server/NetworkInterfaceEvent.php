@@ -26,9 +26,12 @@ namespace pocketmine\event\server;
 use pocketmine\network\NetworkInterface;
 
 class NetworkInterfaceEvent extends ServerEvent{
-	public function __construct(
-		protected NetworkInterface $interface
-	){}
+	/** @var NetworkInterface */
+	protected $interface;
+
+	public function __construct(NetworkInterface $interface){
+		$this->interface = $interface;
+	}
 
 	public function getInterface() : NetworkInterface{
 		return $this->interface;

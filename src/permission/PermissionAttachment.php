@@ -96,7 +96,10 @@ class PermissionAttachment{
 		$this->recalculatePermissibles();
 	}
 
-	public function setPermission(Permission|string $name, bool $value) : void{
+	/**
+	 * @param string|Permission $name
+	 */
+	public function setPermission($name, bool $value) : void{
 		$name = $name instanceof Permission ? $name->getName() : $name;
 		if(isset($this->permissions[$name])){
 			if($this->permissions[$name] === $value){
@@ -117,7 +120,10 @@ class PermissionAttachment{
 		$this->recalculatePermissibles();
 	}
 
-	public function unsetPermission(Permission|string $name) : void{
+	/**
+	 * @param string|Permission $name
+	 */
+	public function unsetPermission($name) : void{
 		$name = $name instanceof Permission ? $name->getName() : $name;
 		if(isset($this->permissions[$name])){
 			unset($this->permissions[$name]);

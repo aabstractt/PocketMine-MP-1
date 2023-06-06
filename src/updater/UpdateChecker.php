@@ -33,9 +33,13 @@ use function ucfirst;
 
 class UpdateChecker{
 
-	protected Server $server;
-	protected string $endpoint;
-	protected ?UpdateInfo $updateInfo = null;
+	/** @var Server */
+	protected $server;
+	/** @var string */
+	protected $endpoint;
+	/** @var UpdateInfo|null */
+	protected $updateInfo = null;
+
 	private \Logger $logger;
 
 	public function __construct(Server $server, string $endpoint){

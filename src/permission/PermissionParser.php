@@ -58,9 +58,11 @@ class PermissionParser{
 	private const KEY_DESCRIPTION = "description";
 
 	/**
+	 * @param bool|string $value
+	 *
 	 * @throws PermissionParserException
 	 */
-	public static function defaultFromString(bool|string $value) : string{
+	public static function defaultFromString($value) : string{
 		if(is_bool($value)){
 			return $value ? self::DEFAULT_TRUE : self::DEFAULT_FALSE;
 		}

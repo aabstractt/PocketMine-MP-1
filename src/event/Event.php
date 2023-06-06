@@ -34,7 +34,8 @@ abstract class Event{
 
 	private static int $eventCallDepth = 1;
 
-	protected ?string $eventName = null;
+	/** @var string|null */
+	protected $eventName = null;
 
 	final public function getEventName() : string{
 		return $this->eventName ?? get_class($this);

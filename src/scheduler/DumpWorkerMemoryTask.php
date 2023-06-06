@@ -23,10 +23,8 @@ declare(strict_types=1);
 
 namespace pocketmine\scheduler;
 
-use pmmp\thread\Thread as NativeThread;
 use pocketmine\MemoryManager;
 use Symfony\Component\Filesystem\Path;
-use function assert;
 
 /**
  * Task used to dump memory from AsyncWorkers
@@ -39,14 +37,12 @@ class DumpWorkerMemoryTask extends AsyncTask{
 	){}
 
 	public function onRun() : void{
-		$worker = NativeThread::getCurrentThread();
-		assert($worker instanceof AsyncWorker);
 		MemoryManager::dumpMemory(
-			$worker,
-			Path::join($this->outputFolder, "AsyncWorker#" . $worker->getAsyncWorkerId()),
+			$this->worker,
+			Path::join($this->outputFolder, "AsyncWorker#" . $this->worker->getAsyncWorkerId()),
 			$this->maxNesting,
 			$this->maxStringSize,
-			new \PrefixedLogger($worker->getLogger(), "Memory Dump")
+			new \PrefixedLogger($this->worker->getLogger(), "Memory Dump")
 		);
 	}
 }

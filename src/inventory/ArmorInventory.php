@@ -32,9 +32,11 @@ class ArmorInventory extends SimpleInventory{
 	public const SLOT_LEGS = 2;
 	public const SLOT_FEET = 3;
 
-	public function __construct(
-		protected Living $holder
-	){
+	/** @var Living */
+	protected $holder;
+
+	public function __construct(Living $holder){
+		$this->holder = $holder;
 		parent::__construct(4);
 	}
 

@@ -33,16 +33,20 @@ use pocketmine\utils\ReversePriorityQueue;
 class TaskScheduler{
 	private bool $enabled = true;
 
-	/** @phpstan-var ReversePriorityQueue<int, TaskHandler> */
-	protected ReversePriorityQueue $queue;
+	/**
+	 * @var ReversePriorityQueue
+	 * @phpstan-var ReversePriorityQueue<int, TaskHandler>
+	 */
+	protected $queue;
 
 	/**
 	 * @var ObjectSet|TaskHandler[]
 	 * @phpstan-var ObjectSet<TaskHandler>
 	 */
-	protected ObjectSet $tasks;
+	protected $tasks;
 
-	protected int $currentTick = 0;
+	/** @var int */
+	protected $currentTick = 0;
 
 	public function __construct(
 		private ?string $owner = null

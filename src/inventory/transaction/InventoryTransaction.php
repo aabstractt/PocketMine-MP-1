@@ -56,21 +56,22 @@ use function spl_object_id;
  * @see InventoryAction
  */
 class InventoryTransaction{
-	protected bool $hasExecuted = false;
+	/** @var bool */
+	protected $hasExecuted = false;
+	/** @var Player */
+	protected $source;
 
 	/** @var Inventory[] */
-	protected array $inventories = [];
+	protected $inventories = [];
 
 	/** @var InventoryAction[] */
-	protected array $actions = [];
+	protected $actions = [];
 
 	/**
 	 * @param InventoryAction[] $actions
 	 */
-	public function __construct(
-		protected Player $source,
-		array $actions = []
-	){
+	public function __construct(Player $source, array $actions = []){
+		$this->source = $source;
 		foreach($actions as $action){
 			$this->addAction($action);
 		}

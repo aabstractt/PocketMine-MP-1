@@ -35,21 +35,22 @@ use pocketmine\utils\TextFormat;
 use pocketmine\world\World;
 use function array_shift;
 use function count;
+use function implode;
 use function round;
 
 class TeleportCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"tp",
+			$name,
 			KnownTranslationFactory::pocketmine_command_tp_description(),
 			KnownTranslationFactory::commands_tp_usage(),
 			["teleport"]
 		);
-		$this->setPermissions([
+		$this->setPermission(implode(";", [
 			DefaultPermissionNames::COMMAND_TELEPORT_SELF,
 			DefaultPermissionNames::COMMAND_TELEPORT_OTHER
-		]);
+		]));
 	}
 
 	private function findPlayer(CommandSender $sender, string $playerName) : ?Player{
@@ -62,6 +63,10 @@ class TeleportCommand extends VanillaCommand{
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
 		switch(count($args)){
 			case 1: // /tp targetPlayer
 			case 3: // /tp x y z

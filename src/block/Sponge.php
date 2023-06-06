@@ -23,13 +23,24 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\data\runtime\RuntimeDataDescriber;
-
 class Sponge extends Opaque{
+
 	protected bool $wet = false;
 
-	public function describeBlockItemState(RuntimeDataDescriber $w) : void{
-		$w->bool($this->wet);
+	protected function writeStateToMeta() : int{
+		return $this->wet ? BlockLegacyMetadata::SPONGE_FLAG_WET : 0;
+	}
+
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->wet = ($stateMeta & BlockLegacyMetadata::SPONGE_FLAG_WET) !== 0;
+	}
+
+	protected function writeStateToItemMeta() : int{
+		return $this->writeStateToMeta();
+	}
+
+	public function getStateBitmask() : int{
+		return 0b1;
 	}
 
 	public function isWet() : bool{ return $this->wet; }

@@ -27,13 +27,11 @@ declare(strict_types=1);
 
 namespace pocketmine\permission;
 
-use pocketmine\lang\Translatable;
-
 /**
  * Represents a permission
  */
 class Permission{
-	private Translatable|string $description;
+	private string $description;
 
 	/**
 	 * Creates a new Permission object to be attached to Permissible objects
@@ -43,7 +41,7 @@ class Permission{
 	 */
 	public function __construct(
 		private string $name,
-		Translatable|string|null $description = null,
+		?string $description = null,
 		private array $children = []
 	){
 		$this->description = $description ?? ""; //TODO: wtf ????
@@ -63,11 +61,11 @@ class Permission{
 		return $this->children;
 	}
 
-	public function getDescription() : Translatable|string{
+	public function getDescription() : string{
 		return $this->description;
 	}
 
-	public function setDescription(Translatable|string $value) : void{
+	public function setDescription(string $value) : void{
 		$this->description = $value;
 	}
 

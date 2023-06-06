@@ -34,14 +34,15 @@ use pocketmine\player\Player;
 class PlayerGameModeChangeEvent extends PlayerEvent implements Cancellable{
 	use CancellableTrait;
 
-	public function __construct(
-		Player $player,
-		protected GameMode $newGamemode
-	){
+	/** @var GameMode */
+	protected $gamemode;
+
+	public function __construct(Player $player, GameMode $newGamemode){
 		$this->player = $player;
+		$this->gamemode = $newGamemode;
 	}
 
 	public function getNewGamemode() : GameMode{
-		return $this->newGamemode;
+		return $this->gamemode;
 	}
 }

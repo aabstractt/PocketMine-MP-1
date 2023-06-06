@@ -38,12 +38,12 @@ class Ice extends Transparent{
 		return 0.98;
 	}
 
-	public function onBreak(Item $item, ?Player $player = null, array &$returnedItems = []) : bool{
+	public function onBreak(Item $item, ?Player $player = null) : bool{
 		if(($player === null || $player->isSurvival()) && !$item->hasEnchantment(VanillaEnchantments::SILK_TOUCH())){
 			$this->position->getWorld()->setBlock($this->position, VanillaBlocks::WATER());
 			return true;
 		}
-		return parent::onBreak($item, $player, $returnedItems);
+		return parent::onBreak($item, $player);
 	}
 
 	public function ticksRandomly() : bool{

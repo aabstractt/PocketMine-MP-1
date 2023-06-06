@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace pocketmine\entity\projectile;
 
 use pocketmine\block\Block;
-use pocketmine\data\SavedDataLoadingException;
+use pocketmine\block\BlockFactory;
 use pocketmine\entity\Entity;
 use pocketmine\entity\Living;
 use pocketmine\entity\Location;
@@ -38,28 +38,30 @@ use pocketmine\event\entity\ProjectileHitEvent;
 use pocketmine\math\RayTraceResult;
 use pocketmine\math\Vector3;
 use pocketmine\math\VoxelRayTrace;
-use pocketmine\nbt\NBT;
+use pocketmine\nbt\tag\ByteTag;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\IntTag;
-use pocketmine\nbt\tag\ListTag;
 use pocketmine\timings\Timings;
 use function assert;
 use function atan2;
 use function ceil;
-use function count;
 use function sqrt;
 use const M_PI;
 use const PHP_INT_MAX;
 
 abstract class Projectile extends Entity{
-	private const TAG_STUCK_ON_BLOCK_POS = "StuckToBlockPos";
 	private const TAG_DAMAGE = "damage"; //TAG_Double
 	private const TAG_TILE_X = "tileX"; //TAG_Int
 	private const TAG_TILE_Y = "tileY"; //TAG_Int
 	private const TAG_TILE_Z = "tileZ"; //TAG_Int
+	private const TAG_BLOCK_ID = "blockId"; //TAG_Int
+	private const TAG_BLOCK_DATA = "blockData"; //TAG_Byte
 
-	protected float $damage = 0.0;
-	protected ?Vector3 $blockHit = null;
+	/** @var float */
+	protected $damage = 0.0;
+
+	/** @var Block|null */
+	protected $blockHit;
 
 	public function __construct(Location $location, ?Entity $shootingEntity, ?CompoundTag $nbt = null){
 		parent::__construct($location, $nbt);
@@ -81,18 +83,28 @@ abstract class Projectile extends Entity{
 		$this->setHealth(1);
 		$this->damage = $nbt->getDouble(self::TAG_DAMAGE, $this->damage);
 
-		if(($stuckOnBlockPosTag = $nbt->getListTag(self::TAG_STUCK_ON_BLOCK_POS)) !== null){
-			if($stuckOnBlockPosTag->getTagType() !== NBT::TAG_Int || count($stuckOnBlockPosTag) !== 3){
-				throw new SavedDataLoadingException(self::TAG_STUCK_ON_BLOCK_POS . " tag should be a list of 3 TAG_Int");
+		(function() use ($nbt) : void{
+			if(($tileXTag = $nbt->getTag(self::TAG_TILE_X)) instanceof IntTag && ($tileYTag = $nbt->getTag(self::TAG_TILE_Y)) instanceof IntTag && ($tileZTag = $nbt->getTag(self::TAG_TILE_Z)) instanceof IntTag){
+				$blockPos = new Vector3($tileXTag->getValue(), $tileYTag->getValue(), $tileZTag->getValue());
+			}else{
+				return;
 			}
 
-			/** @var IntTag[] $values */
-			$values = $stuckOnBlockPosTag->getValue();
+			if(($blockIdTag = $nbt->getTag(self::TAG_BLOCK_ID)) instanceof IntTag){
+				$blockId = $blockIdTag->getValue();
+			}else{
+				return;
+			}
 
-			$this->blockHit = new Vector3($values[0]->getValue(), $values[1]->getValue(), $values[2]->getValue());
-		}elseif(($tileXTag = $nbt->getTag(self::TAG_TILE_X)) instanceof IntTag && ($tileYTag = $nbt->getTag(self::TAG_TILE_Y)) instanceof IntTag && ($tileZTag = $nbt->getTag(self::TAG_TILE_Z)) instanceof IntTag){
-			$this->blockHit = new Vector3($tileXTag->getValue(), $tileYTag->getValue(), $tileZTag->getValue());
-		}
+			if(($blockDataTag = $nbt->getTag(self::TAG_BLOCK_DATA)) instanceof ByteTag){
+				$blockData = $blockDataTag->getValue();
+			}else{
+				return;
+			}
+
+			$this->blockHit = BlockFactory::getInstance()->get($blockId, $blockData);
+			$this->blockHit->position($this->getWorld(), $blockPos->getFloorX(), $blockPos->getFloorY(), $blockPos->getFloorZ());
+		})();
 	}
 
 	public function canCollideWith(Entity $entity) : bool{
@@ -131,11 +143,14 @@ abstract class Projectile extends Entity{
 		$nbt->setDouble(self::TAG_DAMAGE, $this->damage);
 
 		if($this->blockHit !== null){
-			$nbt->setTag(self::TAG_STUCK_ON_BLOCK_POS, new ListTag([
-				new IntTag($this->blockHit->getFloorX()),
-				new IntTag($this->blockHit->getFloorY()),
-				new IntTag($this->blockHit->getFloorZ())
-			]));
+			$pos = $this->blockHit->getPosition();
+			$nbt->setInt(self::TAG_TILE_X, $pos->x);
+			$nbt->setInt(self::TAG_TILE_Y, $pos->y);
+			$nbt->setInt(self::TAG_TILE_Z, $pos->z);
+
+			//we intentionally use different ones to PC because we don't have stringy IDs
+			$nbt->setInt(self::TAG_BLOCK_ID, $this->blockHit->getId());
+			$nbt->setByte(self::TAG_BLOCK_DATA, $this->blockHit->getMeta());
 		}
 
 		return $nbt;
@@ -146,11 +161,8 @@ abstract class Projectile extends Entity{
 	}
 
 	public function onNearbyBlockChange() : void{
-		if($this->blockHit !== null && $this->getWorld()->isInLoadedTerrain($this->blockHit)){
-			$blockHit = $this->getWorld()->getBlock($this->blockHit);
-			if(!$blockHit->collidesWithBB($this->getBoundingBox()->expandedCopy(0.001, 0.001, 0.001))){
-				$this->blockHit = null;
-			}
+		if($this->blockHit !== null && $this->getWorld()->isInLoadedTerrain($this->blockHit->getPosition()) && !$this->blockHit->isSameState($this->getWorld()->getBlock($this->blockHit->getPosition()))){
+			$this->blockHit = null;
 		}
 
 		parent::onNearbyBlockChange();
@@ -312,7 +324,6 @@ abstract class Projectile extends Entity{
 	 * Called when the projectile collides with a Block.
 	 */
 	protected function onHitBlock(Block $blockHit, RayTraceResult $hitResult) : void{
-		$this->blockHit = $blockHit->getPosition()->asVector3();
-		$blockHit->onProjectileHit($this, $hitResult);
+		$this->blockHit = clone $blockHit;
 	}
 }

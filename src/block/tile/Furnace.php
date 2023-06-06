@@ -48,7 +48,8 @@ abstract class Furnace extends Spawnable implements Container, Nameable{
 	public const TAG_COOK_TIME = "CookTime";
 	public const TAG_MAX_TIME = "MaxTime";
 
-	protected FurnaceInventory $inventory;
+	/** @var FurnaceInventory */
+	protected $inventory;
 	private int $remainingFuelTime = 0;
 	private int $cookTime = 0;
 	private int $maxFuelTime = 0;
@@ -104,11 +105,17 @@ abstract class Furnace extends Spawnable implements Container, Nameable{
 		}
 	}
 
-	public function getInventory() : FurnaceInventory{
+	/**
+	 * @return FurnaceInventory
+	 */
+	public function getInventory(){
 		return $this->inventory;
 	}
 
-	public function getRealInventory() : FurnaceInventory{
+	/**
+	 * @return FurnaceInventory
+	 */
+	public function getRealInventory(){
 		return $this->getInventory();
 	}
 
@@ -165,7 +172,7 @@ abstract class Furnace extends Spawnable implements Container, Nameable{
 
 		$furnaceType = $this->getFurnaceType();
 		$smelt = $this->position->getWorld()->getServer()->getCraftingManager()->getFurnaceRecipeManager($furnaceType)->match($raw);
-		$canSmelt = ($smelt instanceof FurnaceRecipe && $raw->getCount() > 0 && (($smelt->getResult()->canStackWith($product) && $product->getCount() < $product->getMaxStackSize()) || $product->isNull()));
+		$canSmelt = ($smelt instanceof FurnaceRecipe && $raw->getCount() > 0 && (($smelt->getResult()->equals($product) && $product->getCount() < $product->getMaxStackSize()) || $product->isNull()));
 
 		if($this->remainingFuelTime <= 0 && $canSmelt && $fuel->getFuelTime() > 0 && $fuel->getCount() > 0){
 			$this->checkFuel($fuel);

@@ -34,8 +34,6 @@ interface WorldData{
 
 	public function getName() : string;
 
-	public function setName(string $value) : void;
-
 	/**
 	 * Returns the generator name
 	 */

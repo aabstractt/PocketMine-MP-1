@@ -30,17 +30,21 @@ use function sin;
 use const M_PI;
 
 class Ore{
-	public function __construct(
-		private Random $random,
-		public OreType $type
-	){}
+	private Random $random;
+	/** @var OreType */
+	public $type;
+
+	public function __construct(Random $random, OreType $type){
+		$this->type = $type;
+		$this->random = $random;
+	}
 
 	public function getType() : OreType{
 		return $this->type;
 	}
 
 	public function canPlaceObject(ChunkManager $world, int $x, int $y, int $z) : bool{
-		return $world->getBlockAt($x, $y, $z)->hasSameTypeId($this->type->replaces);
+		return $world->getBlockAt($x, $y, $z)->isSameType($this->type->replaces);
 	}
 
 	public function placeObject(ChunkManager $world, int $x, int $y, int $z) : void{
@@ -80,7 +84,7 @@ class Ore{
 								$sizeZ = ($zz + 0.5 - $seedZ) / $size;
 								$sizeZ *= $sizeZ;
 
-								if(($sizeX + $sizeY + $sizeZ) < 1 && $world->getBlockAt($xx, $yy, $zz)->hasSameTypeId($this->type->replaces)){
+								if(($sizeX + $sizeY + $sizeZ) < 1 && $world->getBlockAt($xx, $yy, $zz)->isSameType($this->type->replaces)){
 									$world->setBlockAt($xx, $yy, $zz, $this->type->material);
 								}
 							}

@@ -24,10 +24,7 @@ declare(strict_types=1);
 namespace pocketmine\scheduler;
 
 use PHPUnit\Framework\TestCase;
-use pmmp\thread\ThreadSafeArray;
-use pocketmine\promise\PromiseResolver;
 use pocketmine\snooze\SleeperHandler;
-use pocketmine\thread\ThreadSafeClassLoader;
 use pocketmine\utils\MainLogger;
 use function define;
 use function dirname;
@@ -46,7 +43,7 @@ class AsyncPoolTest extends TestCase{
 	public function setUp() : void{
 		@define('pocketmine\\COMPOSER_AUTOLOADER_PATH', dirname(__DIR__, 3) . '/vendor/autoload.php');
 		$this->mainLogger = new MainLogger(tempnam(sys_get_temp_dir(), "pmlog"), false, "Main", new \DateTimeZone('UTC'));
-		$this->pool = new AsyncPool(2, 1024, new ThreadSafeClassLoader(), $this->mainLogger, new SleeperHandler());
+		$this->pool = new AsyncPool(2, 1024, new \BaseClassLoader(), $this->mainLogger, new SleeperHandler());
 	}
 
 	public function tearDown() : void{
@@ -71,22 +68,5 @@ class AsyncPoolTest extends TestCase{
 			usleep(50 * 1000);
 		}
 		self::assertTrue(PublishProgressRaceAsyncTask::$success, "Progress was not reported before task completion");
-	}
-
-	public function testThreadSafeSetResult() : void{
-		$resolver = new PromiseResolver();
-		$resolver->getPromise()->onCompletion(
-			function(ThreadSafeArray $result) : void{
-				self::assertCount(1, $result);
-				self::assertSame(["foo"], (array) $result);
-			},
-			function() : void{
-				self::fail("Promise failed");
-			}
-		);
-		$this->pool->submitTask(new ThreadSafeResultAsyncTask($resolver));
-		while($this->pool->collectTasks()){
-			usleep(50 * 1000);
-		}
 	}
 }

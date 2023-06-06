@@ -28,9 +28,9 @@ use pocketmine\block\utils\BannerPatternLayer;
 use pocketmine\block\utils\ColoredTrait;
 use pocketmine\block\utils\DyeColor;
 use pocketmine\block\utils\SupportType;
+use pocketmine\data\bedrock\DyeColorIdMap;
 use pocketmine\item\Banner as ItemBanner;
 use pocketmine\item\Item;
-use pocketmine\item\VanillaItems;
 use pocketmine\math\AxisAlignedBB;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
@@ -48,20 +48,18 @@ abstract class BaseBanner extends Transparent{
 	 */
 	protected array $patterns = [];
 
-	public function __construct(BlockIdentifier $idInfo, string $name, BlockTypeInfo $typeInfo){
+	public function __construct(BlockIdentifier $idInfo, string $name, BlockBreakInfo $breakInfo){
 		$this->color = DyeColor::BLACK();
-		parent::__construct($idInfo, $name, $typeInfo);
+		parent::__construct($idInfo, $name, $breakInfo);
 	}
 
-	public function readStateFromWorld() : Block{
+	public function readStateFromWorld() : void{
 		parent::readStateFromWorld();
 		$tile = $this->position->getWorld()->getTile($this->position);
 		if($tile instanceof TileBanner){
 			$this->color = $tile->getBaseColor();
 			$this->setPatterns($tile->getPatterns());
 		}
-
-		return $this;
 	}
 
 	public function writeStateToWorld() : void{
@@ -138,6 +136,10 @@ abstract class BaseBanner extends Transparent{
 		}
 	}
 
+	protected function writeStateToItemMeta() : int{
+		return DyeColorIdMap::getInstance()->toInvertedId($this->color);
+	}
+
 	public function getDropsForCompatibleTool(Item $item) : array{
 		$drop = $this->asItem();
 		if($drop instanceof ItemBanner && count($this->patterns) > 0){
@@ -153,9 +155,5 @@ abstract class BaseBanner extends Transparent{
 			$result->setPatterns($this->patterns);
 		}
 		return $result;
-	}
-
-	public function asItem() : Item{
-		return VanillaItems::BANNER()->setColor($this->color);
 	}
 }

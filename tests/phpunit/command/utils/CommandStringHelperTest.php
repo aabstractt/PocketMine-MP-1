@@ -27,7 +27,7 @@ use PHPUnit\Framework\TestCase;
 
 class CommandStringHelperTest extends TestCase{
 
-	public static function parseQuoteAwareProvider() : \Generator{
+	public function parseQuoteAwareProvider() : \Generator{
 		yield [
 			'give "steve jobs" apple',
 			['give', 'steve jobs', 'apple']

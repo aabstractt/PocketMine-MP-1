@@ -32,9 +32,9 @@ use function count;
 
 class PardonCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"pardon",
+			$name,
 			KnownTranslationFactory::pocketmine_command_unban_player_description(),
 			KnownTranslationFactory::commands_unban_usage(),
 			["unban"]
@@ -43,6 +43,10 @@ class PardonCommand extends VanillaCommand{
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
 		if(count($args) !== 1){
 			throw new InvalidCommandSyntaxException();
 		}

@@ -64,20 +64,27 @@ class RegionLoader{
 
 	public const FIRST_SECTOR = 2; //location table occupies 0 and 1
 
+	/** @var int */
+	public static $COMPRESSION_LEVEL = 7;
+
+	/** @var string */
+	protected $filePath;
 	/** @var resource */
 	protected $filePointer;
-	protected int $nextSector = self::FIRST_SECTOR;
+	/** @var int */
+	protected $nextSector = self::FIRST_SECTOR;
 	/** @var RegionLocationTableEntry[]|null[] */
-	protected array $locationTable = [];
-	protected RegionGarbageMap $garbageTable;
-	public int $lastUsed;
+	protected $locationTable = [];
+	/** @var RegionGarbageMap */
+	protected $garbageTable;
+	/** @var int */
+	public $lastUsed = 0;
 
 	/**
 	 * @throws CorruptedRegionException
 	 */
-	private function __construct(
-		protected string $filePath
-	){
+	private function __construct(string $filePath){
+		$this->filePath = $filePath;
 		$this->garbageTable = new RegionGarbageMap([]);
 		$this->lastUsed = time();
 

@@ -34,7 +34,8 @@ use function substr;
 class EncryptionContext{
 	private const CHECKSUM_ALGO = "sha256";
 
-	public static bool $ENABLED = true;
+	/** @var bool */
+	public static $ENABLED = true;
 
 	private string $key;
 

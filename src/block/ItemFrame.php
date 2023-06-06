@@ -24,9 +24,8 @@ declare(strict_types=1);
 namespace pocketmine\block;
 
 use pocketmine\block\tile\ItemFrame as TileItemFrame;
-use pocketmine\block\utils\AnyFacingTrait;
-use pocketmine\block\utils\SupportType;
-use pocketmine\data\runtime\RuntimeDataDescriber;
+use pocketmine\block\utils\BlockDataSerializer;
+use pocketmine\block\utils\HorizontalFacingTrait;
 use pocketmine\item\Item;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
@@ -40,7 +39,7 @@ use function is_nan;
 use function lcg_value;
 
 class ItemFrame extends Flowable{
-	use AnyFacingTrait;
+	use HorizontalFacingTrait;
 
 	public const ROTATIONS = 8;
 
@@ -50,12 +49,16 @@ class ItemFrame extends Flowable{
 	protected int $itemRotation = 0;
 	protected float $itemDropChance = 1.0;
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->facing($this->facing);
-		$w->bool($this->hasMap);
+	protected function writeStateToMeta() : int{
+		return BlockDataSerializer::write5MinusHorizontalFacing($this->facing) | ($this->hasMap ? BlockLegacyMetadata::ITEM_FRAME_FLAG_HAS_MAP : 0);
 	}
 
-	public function readStateFromWorld() : Block{
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->facing = BlockDataSerializer::read5MinusHorizontalFacing($stateMeta);
+		$this->hasMap = ($stateMeta & BlockLegacyMetadata::ITEM_FRAME_FLAG_HAS_MAP) !== 0;
+	}
+
+	public function readStateFromWorld() : void{
 		parent::readStateFromWorld();
 		$tile = $this->position->getWorld()->getTile($this->position);
 		if($tile instanceof TileItemFrame){
@@ -66,8 +69,6 @@ class ItemFrame extends Flowable{
 			$this->itemRotation = $tile->getItemRotation() % self::ROTATIONS;
 			$this->itemDropChance = $tile->getItemDropChance();
 		}
-
-		return $this;
 	}
 
 	public function writeStateToWorld() : void{
@@ -78,6 +79,10 @@ class ItemFrame extends Flowable{
 			$tile->setItemRotation($this->itemRotation);
 			$tile->setItemDropChance($this->itemDropChance);
 		}
+	}
+
+	public function getStateBitmask() : int{
+		return 0b111;
 	}
 
 	public function getFramedItem() : ?Item{
@@ -131,7 +136,7 @@ class ItemFrame extends Flowable{
 		return $this;
 	}
 
-	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null, array &$returnedItems = []) : bool{
+	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
 		if($this->framedItem !== null){
 			$this->itemRotation = ($this->itemRotation + 1) % self::ROTATIONS;
 
@@ -163,18 +168,14 @@ class ItemFrame extends Flowable{
 		return true;
 	}
 
-	private function canBeSupportedBy(Block $block, int $face) : bool{
-		return !$block->getSupportType($face)->equals(SupportType::NONE());
-	}
-
 	public function onNearbyBlockChange() : void{
-		if(!$this->canBeSupportedBy($this->getSide(Facing::opposite($this->facing)), $this->facing)){
+		if(!$this->getSide(Facing::opposite($this->facing))->isSolid()){
 			$this->position->getWorld()->useBreakOn($this->position);
 		}
 	}
 
 	public function place(BlockTransaction $tx, Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
-		if(!$this->canBeSupportedBy($blockReplace->getSide(Facing::opposite($face)), $face)){
+		if($face === Facing::DOWN || $face === Facing::UP || !$blockReplace->getSide(Facing::opposite($face))->isSolid()){
 			return false;
 		}
 

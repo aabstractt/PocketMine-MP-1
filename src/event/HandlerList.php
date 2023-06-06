@@ -73,7 +73,10 @@ class HandlerList{
 		$this->invalidateAffectedCaches();
 	}
 
-	public function unregister(RegisteredListener|Plugin|Listener $object) : void{
+	/**
+	 * @param RegisteredListener|Listener|Plugin $object
+	 */
+	public function unregister($object) : void{
 		if($object instanceof Plugin || $object instanceof Listener){
 			foreach($this->handlerSlots as $priority => $list){
 				foreach($list as $hash => $listener){
@@ -84,7 +87,7 @@ class HandlerList{
 					}
 				}
 			}
-		}else{
+		}elseif($object instanceof RegisteredListener){
 			unset($this->handlerSlots[$object->getPriority()][spl_object_id($object)]);
 		}
 		$this->invalidateAffectedCaches();

@@ -24,8 +24,8 @@ declare(strict_types=1);
 namespace pocketmine\block;
 
 use pocketmine\block\utils\AnalogRedstoneSignalEmitterTrait;
+use pocketmine\block\utils\BlockDataSerializer;
 use pocketmine\item\Item;
-use pocketmine\item\VanillaItems;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
@@ -41,11 +41,21 @@ class RedstoneWire extends Flowable{
 		return false;
 	}
 
-	public function readStateFromWorld() : Block{
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->signalStrength = BlockDataSerializer::readBoundedInt("signalStrength", $stateMeta, 0, 15);
+	}
+
+	protected function writeStateToMeta() : int{
+		return $this->signalStrength;
+	}
+
+	public function getStateBitmask() : int{
+		return 0b1111;
+	}
+
+	public function readStateFromWorld() : void{
 		parent::readStateFromWorld();
 		//TODO: check connections to nearby redstone components
-
-		return $this;
 	}
 
 	public function onNearbyBlockChange() : void{
@@ -56,9 +66,5 @@ class RedstoneWire extends Flowable{
 
 	private function canBeSupportedBy(Block $block) : bool{
 		return $block->getSupportType(Facing::UP)->hasCenterSupport();
-	}
-
-	public function asItem() : Item{
-		return VanillaItems::REDSTONE_DUST();
 	}
 }

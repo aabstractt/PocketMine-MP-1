@@ -25,9 +25,7 @@ namespace pocketmine\block;
 
 use pocketmine\block\tile\Furnace as TileFurnace;
 use pocketmine\block\utils\FacesOppositePlacingPlayerTrait;
-use pocketmine\block\utils\HorizontalFacingTrait;
-use pocketmine\crafting\FurnaceType;
-use pocketmine\data\runtime\RuntimeDataDescriber;
+use pocketmine\block\utils\NormalHorizontalFacingInMetadataTrait;
 use pocketmine\item\Item;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
@@ -35,24 +33,26 @@ use function mt_rand;
 
 class Furnace extends Opaque{
 	use FacesOppositePlacingPlayerTrait;
-	use HorizontalFacingTrait;
-
-	protected FurnaceType $furnaceType;
-
-	protected bool $lit = false;
-
-	public function __construct(BlockIdentifier $idInfo, string $name, BlockTypeInfo $typeInfo, FurnaceType $furnaceType){
-		$this->furnaceType = $furnaceType;
-		parent::__construct($idInfo, $name, $typeInfo);
+	use NormalHorizontalFacingInMetadataTrait {
+		readStateFromData as readFacingStateFromData;
 	}
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->horizontalFacing($this->facing);
-		$w->bool($this->lit);
+	protected BlockIdentifierFlattened $idInfoFlattened;
+
+	protected bool $lit = false; //this is set based on the blockID
+
+	public function __construct(BlockIdentifierFlattened $idInfo, string $name, BlockBreakInfo $breakInfo){
+		$this->idInfoFlattened = $idInfo;
+		parent::__construct($idInfo, $name, $breakInfo);
 	}
 
-	public function getFurnaceType() : FurnaceType{
-		return $this->furnaceType;
+	public function getId() : int{
+		return $this->lit ? $this->idInfoFlattened->getSecondId() : parent::getId();
+	}
+
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->readFacingStateFromData($id, $stateMeta);
+		$this->lit = $id === $this->idInfoFlattened->getSecondId();
 	}
 
 	public function getLightLevel() : int{
@@ -71,7 +71,7 @@ class Furnace extends Opaque{
 		return $this;
 	}
 
-	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null, array &$returnedItems = []) : bool{
+	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
 		if($player instanceof Player){
 			$furnace = $this->position->getWorld()->getTile($this->position);
 			if($furnace instanceof TileFurnace && $furnace->canOpenWith($item->getCustomName())){

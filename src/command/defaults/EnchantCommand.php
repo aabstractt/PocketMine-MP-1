@@ -30,22 +30,27 @@ use pocketmine\item\enchantment\StringToEnchantmentParser;
 use pocketmine\lang\KnownTranslationFactory;
 use pocketmine\permission\DefaultPermissionNames;
 use function count;
+use function implode;
 
 class EnchantCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"enchant",
+			$name,
 			KnownTranslationFactory::pocketmine_command_enchant_description(),
 			KnownTranslationFactory::commands_enchant_usage()
 		);
-		$this->setPermissions([
+		$this->setPermission(implode(";", [
 			DefaultPermissionNames::COMMAND_ENCHANT_SELF,
 			DefaultPermissionNames::COMMAND_ENCHANT_OTHER
-		]);
+		]));
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
 		if(count($args) < 2){
 			throw new InvalidCommandSyntaxException();
 		}

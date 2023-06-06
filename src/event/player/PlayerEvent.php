@@ -30,7 +30,8 @@ use pocketmine\event\Event;
 use pocketmine\player\Player;
 
 abstract class PlayerEvent extends Event{
-	protected Player $player;
+	/** @var Player */
+	protected $player;
 
 	public function getPlayer() : Player{
 		return $this->player;

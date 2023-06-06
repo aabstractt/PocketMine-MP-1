@@ -25,7 +25,7 @@ namespace pocketmine\block;
 
 use pocketmine\block\tile\Barrel as TileBarrel;
 use pocketmine\block\utils\AnyFacingTrait;
-use pocketmine\data\runtime\RuntimeDataDescriber;
+use pocketmine\block\utils\BlockDataSerializer;
 use pocketmine\item\Item;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
@@ -38,9 +38,17 @@ class Barrel extends Opaque{
 
 	protected bool $open = false;
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->facing($this->facing);
-		$w->bool($this->open);
+	protected function writeStateToMeta() : int{
+		return BlockDataSerializer::writeFacing($this->facing) | ($this->open ? BlockLegacyMetadata::BARREL_FLAG_OPEN : 0);
+	}
+
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->facing = BlockDataSerializer::readFacing($stateMeta & 0x07);
+		$this->open = ($stateMeta & BlockLegacyMetadata::BARREL_FLAG_OPEN) === BlockLegacyMetadata::BARREL_FLAG_OPEN;
+	}
+
+	public function getStateBitmask() : int{
+		return 0b1111;
 	}
 
 	public function isOpen() : bool{
@@ -73,7 +81,7 @@ class Barrel extends Opaque{
 		return parent::place($tx, $item, $blockReplace, $blockClicked, $face, $clickVector, $player);
 	}
 
-	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null, array &$returnedItems = []) : bool{
+	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
 		if($player instanceof Player){
 			$barrel = $this->position->getWorld()->getTile($this->position);
 			if($barrel instanceof TileBarrel){

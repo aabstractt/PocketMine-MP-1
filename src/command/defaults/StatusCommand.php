@@ -36,15 +36,19 @@ use function round;
 
 class StatusCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"status",
+			$name,
 			KnownTranslationFactory::pocketmine_command_status_description()
 		);
 		$this->setPermission(DefaultPermissionNames::COMMAND_STATUS);
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
 		$mUsage = Process::getAdvancedMemoryUsage();
 
 		$server = $sender->getServer();

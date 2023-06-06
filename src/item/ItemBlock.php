@@ -24,38 +24,28 @@ declare(strict_types=1);
 namespace pocketmine\item;
 
 use pocketmine\block\Block;
-use pocketmine\data\runtime\RuntimeDataDescriber;
+use pocketmine\block\BlockFactory;
 
 /**
- * Class used for Items that directly represent blocks, such as stone, dirt, wood etc.
- *
- * This should NOT be used for items which are merely *associated* with blocks (e.g. seeds are not wheat crops; they
- * just place wheat crops when used on the ground).
+ * Class used for Items that can be Blocks
  */
-final class ItemBlock extends Item{
-	public function __construct(
-		private Block $block
-	){
-		parent::__construct(ItemIdentifier::fromBlock($block), $block->getName());
-	}
+class ItemBlock extends Item{
+	private int $blockFullId;
 
-	protected function describeState(RuntimeDataDescriber $w) : void{
-		$this->block->describeBlockItemState($w);
+	public function __construct(ItemIdentifier $identifier, Block $block){
+		parent::__construct($identifier, $block->getName());
+		$this->blockFullId = $block->getFullId();
 	}
 
 	public function getBlock(?int $clickedFace = null) : Block{
-		return clone $this->block;
+		return BlockFactory::getInstance()->fromFullBlock($this->blockFullId);
 	}
 
 	public function getFuelTime() : int{
-		return $this->block->getFuelTime();
-	}
-
-	public function isFireProof() : bool{
-		return $this->block->isFireProofAsItem();
+		return $this->getBlock()->getFuelTime();
 	}
 
 	public function getMaxStackSize() : int{
-		return $this->block->getMaxStackSize();
+		return $this->getBlock()->getMaxStackSize();
 	}
 }

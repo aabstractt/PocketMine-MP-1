@@ -24,7 +24,7 @@ declare(strict_types=1);
 namespace pocketmine\entity;
 
 use pocketmine\block\Block;
-use pocketmine\block\BlockTypeIds;
+use pocketmine\block\BlockLegacyIds;
 use pocketmine\data\bedrock\EffectIdMap;
 use pocketmine\entity\animation\DeathAnimation;
 use pocketmine\entity\animation\HurtAnimation;
@@ -73,7 +73,6 @@ use function max;
 use function min;
 use function mt_getrandmax;
 use function mt_rand;
-use function round;
 use function sqrt;
 use const M_PI;
 
@@ -90,34 +89,50 @@ abstract class Living extends Entity{
 	private const TAG_EFFECT_SHOW_PARTICLES = "ShowParticles"; //TAG_Byte
 	private const TAG_EFFECT_AMBIENT = "Ambient"; //TAG_Byte
 
-	protected int $attackTime = 0;
+	protected $gravity = 0.08;
+	protected $drag = 0.02;
 
-	public int $deadTicks = 0;
-	protected int $maxDeadTicks = 25;
+	/** @var int */
+	protected $attackTime = 0;
 
-	protected float $jumpVelocity = 0.42;
+	/** @var int */
+	public $deadTicks = 0;
+	/** @var int */
+	protected $maxDeadTicks = 25;
 
-	protected EffectManager $effectManager;
+	/** @var float */
+	protected $jumpVelocity = 0.42;
 
-	protected ArmorInventory $armorInventory;
+	/** @var EffectManager */
+	protected $effectManager;
 
-	protected bool $breathing = true;
-	protected int $breathTicks = self::DEFAULT_BREATH_TICKS;
-	protected int $maxBreathTicks = self::DEFAULT_BREATH_TICKS;
+	/** @var ArmorInventory */
+	protected $armorInventory;
 
-	protected Attribute $healthAttr;
-	protected Attribute $absorptionAttr;
-	protected Attribute $knockbackResistanceAttr;
-	protected Attribute $moveSpeedAttr;
+	/** @var bool */
+	protected $breathing = true;
+	/** @var int */
+	protected $breathTicks = self::DEFAULT_BREATH_TICKS;
+	/** @var int */
+	protected $maxBreathTicks = self::DEFAULT_BREATH_TICKS;
 
-	protected bool $sprinting = false;
-	protected bool $sneaking = false;
-	protected bool $gliding = false;
-	protected bool $swimming = false;
+	/** @var Attribute */
+	protected $healthAttr;
+	/** @var Attribute */
+	protected $absorptionAttr;
+	/** @var Attribute */
+	protected $knockbackResistanceAttr;
+	/** @var Attribute */
+	protected $moveSpeedAttr;
 
-	protected function getInitialDragMultiplier() : float{ return 0.02; }
-
-	protected function getInitialGravity() : float{ return 0.08; }
+	/** @var bool */
+	protected $sprinting = false;
+	/** @var bool */
+	protected $sneaking = false;
+	/** @var bool */
+	protected $gliding = false;
+	/** @var bool */
+	protected $swimming = false;
 
 	abstract public function getName() : string;
 
@@ -294,6 +309,16 @@ abstract class Living extends Entity{
 		return $nbt;
 	}
 
+	/**
+	 * @deprecated This function always returns true, no matter whether the target is in the line of sight or not.
+	 * @see VoxelRayTrace::inDirection() for a more generalized method of ray-tracing to a target.
+	 */
+	public function hasLineOfSight(Entity $entity) : bool{
+		//TODO: head height
+		return true;
+		//return $this->getLevelNonNull()->rayTraceBlocks(Vector3::createVector($this->x, $this->y + $this->height, $this->z), Vector3::createVector($entity->x, $entity->y + $entity->height, $entity->z)) === null;
+	}
+
 	public function getEffects() : EffectManager{
 		return $this->effectManager;
 	}
@@ -360,7 +385,7 @@ abstract class Living extends Entity{
 				new EntityLongFallSound($this) :
 				new EntityShortFallSound($this)
 			);
-		}elseif($fallBlock->getTypeId() !== BlockTypeIds::AIR){
+		}elseif($fallBlock->getId() !== BlockLegacyIds::AIR){
 			$this->broadcastSound(new EntityLandSound($this, $fallBlock));
 		}
 		return $newVerticalVelocity;
@@ -430,10 +455,6 @@ abstract class Living extends Entity{
 		$source->setModifier(-$source->getFinalDamage() * min(ceil(min($totalEpf, 25) * (mt_rand(50, 100) / 100)), 20) * 0.04, EntityDamageEvent::MODIFIER_ARMOR_ENCHANTMENTS);
 
 		$source->setModifier(-min($this->getAbsorption(), $source->getFinalDamage()), EntityDamageEvent::MODIFIER_ABSORPTION);
-
-		if($cause === EntityDamageEvent::CAUSE_FALLING_BLOCK && $this->armorInventory->getHelmet() instanceof Armor){
-			$source->setModifier(-($source->getFinalDamage() / 4), EntityDamageEvent::MODIFIER_ARMOR_HELMET);
-		}
 	}
 
 	/**
@@ -464,15 +485,6 @@ abstract class Living extends Entity{
 
 			if($damage > 0){
 				$attacker->attack(new EntityDamageByEntityEvent($this, $attacker, EntityDamageEvent::CAUSE_MAGIC, $damage));
-			}
-
-			if($source->getModifier(EntityDamageEvent::MODIFIER_ARMOR_HELMET) < 0){
-				$helmet = $this->armorInventory->getHelmet();
-				if($helmet instanceof Armor){
-					$finalDamage = $source->getFinalDamage();
-					$this->damageItem($helmet, (int) round($finalDamage * 4 + lcg_value() * $finalDamage * 2));
-					$this->armorInventory->setHelmet($helmet);
-				}
 			}
 		}
 	}
@@ -635,13 +647,6 @@ abstract class Living extends Entity{
 			if($this->doAirSupplyTick($tickDiff)){
 				$hasUpdate = true;
 			}
-
-			foreach($this->armorInventory->getContents() as $index => $item){
-				if($item->onTickWorn($this)){
-					$hasUpdate = true;
-					$this->armorInventory->setItem($index, $item);
-				}
-			}
 		}
 
 		if($this->attackTime > 0){
@@ -792,10 +797,10 @@ abstract class Living extends Entity{
 				--$nextIndex;
 			}
 
-			$id = $block->getTypeId();
+			$id = $block->getId();
 
 			if($transparent === null){
-				if($id !== BlockTypeIds::AIR){
+				if($id !== BlockLegacyIds::AIR){
 					break;
 				}
 			}else{
@@ -871,10 +876,8 @@ abstract class Living extends Entity{
 	}
 
 	protected function destroyCycles() : void{
-		unset(
-			$this->armorInventory,
-			$this->effectManager
-		);
+		$this->armorInventory = null;
+		$this->effectManager = null;
 		parent::destroyCycles();
 	}
 }

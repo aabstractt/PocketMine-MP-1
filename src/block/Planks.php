@@ -23,20 +23,17 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\WoodTypeTrait;
-
 class Planks extends Opaque{
-	use WoodTypeTrait;
 
 	public function getFuelTime() : int{
-		return $this->woodType->isFlammable() ? 300 : 0;
+		return 300;
 	}
 
 	public function getFlameEncouragement() : int{
-		return $this->woodType->isFlammable() ? 5 : 0;
+		return 5;
 	}
 
 	public function getFlammability() : int{
-		return $this->woodType->isFlammable() ? 20 : 0;
+		return 20;
 	}
 }

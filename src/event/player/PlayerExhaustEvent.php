@@ -46,19 +46,23 @@ class PlayerExhaustEvent extends EntityEvent implements Cancellable{
 	public const CAUSE_SPRINT_JUMPING = 10;
 	public const CAUSE_CUSTOM = 11;
 
+	/** @var Human */
+	protected $player;
+
 	public function __construct(
-		protected Human $human,
+		Human $human,
 		private float $amount,
 		private int $cause
 	){
 		$this->entity = $human;
+		$this->player = $human;
 	}
 
 	/**
 	 * @return Human
 	 */
 	public function getPlayer(){
-		return $this->human;
+		return $this->player;
 	}
 
 	public function getAmount() : float{

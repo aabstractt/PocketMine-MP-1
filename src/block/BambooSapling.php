@@ -23,22 +23,27 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\event\block\StructureGrowEvent;
 use pocketmine\item\Bamboo as ItemBamboo;
 use pocketmine\item\Fertilizer;
 use pocketmine\item\Item;
-use pocketmine\item\VanillaItems;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
 use pocketmine\world\BlockTransaction;
 
 final class BambooSapling extends Flowable{
+
 	private bool $ready = false;
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->bool($this->ready);
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->ready = ($stateMeta & BlockLegacyMetadata::BAMBOO_SAPLING_FLAG_READY) !== 0;
 	}
+
+	protected function writeStateToMeta() : int{
+		return $this->ready ? BlockLegacyMetadata::BAMBOO_SAPLING_FLAG_READY : 0;
+	}
+
+	public function getStateBitmask() : int{ return 0b1; }
 
 	public function isReady() : bool{ return $this->ready; }
 
@@ -49,11 +54,14 @@ final class BambooSapling extends Flowable{
 	}
 
 	private function canBeSupportedBy(Block $block) : bool{
+		//TODO: tags would be better for this
 		return
-			$block->getTypeId() === BlockTypeIds::GRAVEL ||
-			$block->hasTypeTag(BlockTypeTags::DIRT) ||
-			$block->hasTypeTag(BlockTypeTags::MUD) ||
-			$block->hasTypeTag(BlockTypeTags::SAND);
+			$block instanceof Dirt ||
+			$block instanceof Grass ||
+			$block instanceof Gravel ||
+			$block instanceof Sand ||
+			$block instanceof Mycelium ||
+			$block instanceof Podzol;
 	}
 
 	public function place(BlockTransaction $tx, Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
@@ -63,7 +71,7 @@ final class BambooSapling extends Flowable{
 		return parent::place($tx, $item, $blockReplace, $blockClicked, $face, $clickVector, $player);
 	}
 
-	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null, array &$returnedItems = []) : bool{
+	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
 		if($item instanceof Fertilizer || $item instanceof ItemBamboo){
 			if($this->grow($player)){
 				$item->pop();
@@ -118,6 +126,6 @@ final class BambooSapling extends Flowable{
 	}
 
 	public function asItem() : Item{
-		return VanillaItems::BAMBOO();
+		return VanillaBlocks::BAMBOO()->asItem();
 	}
 }

@@ -38,9 +38,10 @@ final class PromiseResolver{
 	}
 
 	/**
+	 * @param mixed $value
 	 * @phpstan-param TValue $value
 	 */
-	public function resolve(mixed $value) : void{
+	public function resolve($value) : void{
 		if($this->shared->resolved){
 			throw new \LogicException("Promise has already been resolved/rejected");
 		}

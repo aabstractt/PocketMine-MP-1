@@ -28,19 +28,21 @@ use pocketmine\item\Item;
 class PotionTypeRecipe implements BrewingRecipe{
 
 	public function __construct(
-		private RecipeIngredient $input,
-		private RecipeIngredient $ingredient,
+		private Item $input,
+		private Item $ingredient,
 		private Item $output
 	){
+		$this->input = clone $input;
+		$this->ingredient = clone $ingredient;
 		$this->output = clone $output;
 	}
 
-	public function getInput() : RecipeIngredient{
-		return $this->input;
+	public function getInput() : Item{
+		return clone $this->input;
 	}
 
-	public function getIngredient() : RecipeIngredient{
-		return $this->ingredient;
+	public function getIngredient() : Item{
+		return clone $this->ingredient;
 	}
 
 	public function getOutput() : Item{
@@ -48,6 +50,6 @@ class PotionTypeRecipe implements BrewingRecipe{
 	}
 
 	public function getResultFor(Item $input) : ?Item{
-		return $this->input->accepts($input) ? $this->getOutput() : null;
+		return $input->equals($this->input, true, false) ? $this->getOutput() : null;
 	}
 }

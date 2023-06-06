@@ -23,8 +23,8 @@ declare(strict_types=1);
 
 namespace pocketmine\event\player;
 
+use pocketmine\event\Cancellable;
 use pocketmine\event\Event;
-use pocketmine\lang\Translatable;
 use pocketmine\player\PlayerInfo;
 use function array_keys;
 use function count;
@@ -39,30 +39,33 @@ use function count;
  * WARNING: Any information about the player CANNOT be trusted at this stage, because they are not authenticated and
  * could be a hacker posing as another player.
  */
-class PlayerPreLoginEvent extends Event{
-	public const KICK_FLAG_PLUGIN = 0;
-	public const KICK_FLAG_SERVER_FULL = 1;
-	public const KICK_FLAG_SERVER_WHITELISTED = 2;
-	public const KICK_FLAG_BANNED = 3;
+class PlayerPreLoginEvent extends Event implements Cancellable{
+	public const KICK_REASON_PLUGIN = 0;
+	public const KICK_REASON_SERVER_FULL = 1;
+	public const KICK_REASON_SERVER_WHITELISTED = 2;
+	public const KICK_REASON_BANNED = 3;
 
-	public const KICK_FLAG_PRIORITY = [
-		self::KICK_FLAG_PLUGIN, //Plugin reason should always take priority over anything else
-		self::KICK_FLAG_SERVER_FULL,
-		self::KICK_FLAG_SERVER_WHITELISTED,
-		self::KICK_FLAG_BANNED
+	public const KICK_REASON_PRIORITY = [
+		self::KICK_REASON_PLUGIN, //Plugin reason should always take priority over anything else
+		self::KICK_REASON_SERVER_FULL,
+		self::KICK_REASON_SERVER_WHITELISTED,
+		self::KICK_REASON_BANNED
 	];
 
-	/** @var Translatable[]|string[] reason const => associated message */
-	protected array $disconnectReasons = [];
-	/** @var Translatable[]|string[] */
-	protected array $disconnectScreenMessages = [];
+	/** @var bool */
+	protected $authRequired;
+
+	/** @var string[] reason const => associated message */
+	protected $kickReasons = [];
 
 	public function __construct(
 		private PlayerInfo $playerInfo,
 		private string $ip,
 		private int $port,
-		protected bool $authRequired
-	){}
+		bool $authRequired
+	){
+		$this->authRequired = $authRequired;
+	}
 
 	/**
 	 * Returns an object containing self-proclaimed information about the connecting player.
@@ -90,31 +93,27 @@ class PlayerPreLoginEvent extends Event{
 	}
 
 	/**
-	 * Returns an array of kick flags currently assigned.
+	 * Returns an array of kick reasons currently assigned.
 	 *
 	 * @return int[]
 	 */
-	public function getKickFlags() : array{
-		return array_keys($this->disconnectReasons);
+	public function getKickReasons() : array{
+		return array_keys($this->kickReasons);
 	}
 
 	/**
-	 * Returns whether the given kick flag is set for this event.
+	 * Returns whether the given kick reason is set for this event.
 	 */
-	public function isKickFlagSet(int $flag) : bool{
-		return isset($this->disconnectReasons[$flag]);
+	public function isKickReasonSet(int $flag) : bool{
+		return isset($this->kickReasons[$flag]);
 	}
 
 	/**
 	 * Sets a reason to disallow the player to continue authenticating, with a message.
 	 * This can also be used to change kick messages for already-set flags.
-	 *
-	 * @param Translatable|string      $disconnectReason        Shown in the server log - this should be a short one-line message
-	 * @param Translatable|string|null $disconnectScreenMessage Shown on the player's disconnection screen (null will use the reason)
 	 */
-	public function setKickFlag(int $flag, Translatable|string $disconnectReason, Translatable|string|null $disconnectScreenMessage = null) : void{
-		$this->disconnectReasons[$flag] = $disconnectReason;
-		$this->disconnectScreenMessages[$flag] = $disconnectScreenMessage ?? $disconnectReason;
+	public function setKickReason(int $flag, string $message) : void{
+		$this->kickReasons[$flag] = $message;
 	}
 
 	/**
@@ -123,72 +122,50 @@ class PlayerPreLoginEvent extends Event{
 	 *
 	 * @param int $flag Specific flag to clear.
 	 */
-	public function clearKickFlag(int $flag) : void{
-		unset($this->disconnectReasons[$flag], $this->disconnectScreenMessages[$flag]);
+	public function clearKickReason(int $flag) : void{
+		unset($this->kickReasons[$flag]);
 	}
 
 	/**
 	 * Clears all pre-assigned kick reasons, allowing the player to continue logging in.
 	 */
-	public function clearAllKickFlags() : void{
-		$this->disconnectReasons = [];
-		$this->disconnectScreenMessages = [];
+	public function clearAllKickReasons() : void{
+		$this->kickReasons = [];
 	}
 
 	/**
 	 * Returns whether the player is allowed to continue logging in.
 	 */
 	public function isAllowed() : bool{
-		return count($this->disconnectReasons) === 0;
+		return count($this->kickReasons) === 0;
 	}
 
 	/**
-	 * Returns the disconnect reason provided for the given kick flag, or null if not set.
-	 * This is the message which will be shown in the server log and on the console.
+	 * Returns the kick message provided for the given kick flag, or null if not set.
 	 */
-	public function getDisconnectReason(int $flag) : Translatable|string|null{
-		return $this->disconnectReasons[$flag] ?? null;
+	public function getKickMessage(int $flag) : ?string{
+		return $this->kickReasons[$flag] ?? null;
 	}
 
 	/**
-	 * Returns the disconnect screen message provided for the given kick flag, or null if not set.
-	 * This is the message shown to the player on the disconnect screen.
-	 */
-	public function getDisconnectScreenMessage(int $flag) : Translatable|string|null{
-		return $this->disconnectScreenMessages[$flag] ?? null;
-	}
-
-	/**
-	 * Resolves the message that will be shown in the server log if the player is kicked.
-	 * Only one message (the highest priority one) will be shown. See priority order to decide how to set your
+	 * Returns the final kick message which will be shown on the disconnect screen.
+	 *
+	 * Note: Only one message (the highest priority one) will be shown. See priority order to decide how to set your
 	 * messages.
 	 *
-	 * @see PlayerPreLoginEvent::KICK_FLAG_PRIORITY
+	 * @see PlayerPreLoginEvent::KICK_REASON_PRIORITY
 	 */
-	public function getFinalDisconnectReason() : Translatable|string{
-		foreach(self::KICK_FLAG_PRIORITY as $p){
-			if(isset($this->disconnectReasons[$p])){
-				return $this->disconnectReasons[$p];
+	public function getFinalKickMessage() : string{
+		foreach(self::KICK_REASON_PRIORITY as $p){
+			if(isset($this->kickReasons[$p])){
+				return $this->kickReasons[$p];
 			}
 		}
 
 		return "";
 	}
 
-	/**
-	 * Resolves the message that will be shown on the player's disconnect screen if they are kicked.
-	 * Only one message (the highest priority one) will be shown. See priority order to decide how to set your
-	 * messages.
-	 *
-	 * @see PlayerPreLoginEvent::KICK_FLAG_PRIORITY
-	 */
-	public function getFinalDisconnectScreenMessage() : Translatable|string{
-		foreach(self::KICK_FLAG_PRIORITY as $p){
-			if(isset($this->disconnectScreenMessages[$p])){
-				return $this->disconnectScreenMessages[$p];
-			}
-		}
-
-		return "";
+	public function isCancelled() : bool{
+		return !$this->isAllowed();
 	}
 }

@@ -33,22 +33,25 @@ use function count;
 use function spl_object_id;
 
 class EffectManager{
-	/** @var EffectInstance[] */
-	protected array $effects = [];
 
-	protected Color $bubbleColor;
-	protected bool $onlyAmbientEffects = false;
+	/** @var EffectInstance[] */
+	protected $effects = [];
+
+	/** @var Color */
+	protected $bubbleColor;
+	/** @var bool */
+	protected $onlyAmbientEffects = false;
 
 	/**
 	 * @var \Closure[]|ObjectSet
 	 * @phpstan-var ObjectSet<\Closure(EffectInstance, bool $replacesOldEffect) : void>
 	 */
-	protected ObjectSet $effectAddHooks;
+	protected $effectAddHooks;
 	/**
 	 * @var \Closure[]|ObjectSet
 	 * @phpstan-var ObjectSet<\Closure(EffectInstance) : void>
 	 */
-	protected ObjectSet $effectRemoveHooks;
+	protected $effectRemoveHooks;
 
 	public function __construct(
 		private Living $entity

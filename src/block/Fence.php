@@ -37,7 +37,7 @@ class Fence extends Transparent{
 		return 0.25;
 	}
 
-	public function readStateFromWorld() : Block{
+	public function readStateFromWorld() : void{
 		parent::readStateFromWorld();
 
 		foreach(Facing::HORIZONTAL as $facing){
@@ -48,8 +48,6 @@ class Fence extends Transparent{
 				unset($this->connections[$facing]);
 			}
 		}
-
-		return $this;
 	}
 
 	/**

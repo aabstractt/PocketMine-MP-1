@@ -32,24 +32,20 @@ use pocketmine\world\format\io\WorldData;
 use function file_exists;
 
 abstract class BaseNbtWorldData implements WorldData{
-	protected const TAG_LEVEL_NAME = "LevelName";
-	protected const TAG_GENERATOR_NAME = "generatorName";
-	protected const TAG_GENERATOR_OPTIONS = "generatorOptions";
-	protected const TAG_RANDOM_SEED = "RandomSeed";
-	protected const TAG_TIME = "Time";
-	protected const TAG_SPAWN_X = "SpawnX";
-	protected const TAG_SPAWN_Y = "SpawnY";
-	protected const TAG_SPAWN_Z = "SpawnZ";
 
-	protected CompoundTag $compoundTag;
+	/** @var string */
+	protected $dataPath;
+
+	/** @var CompoundTag */
+	protected $compoundTag;
 
 	/**
 	 * @throws CorruptedWorldException
 	 * @throws UnsupportedWorldFormatException
 	 */
-	public function __construct(
-		protected string $dataPath
-	){
+	public function __construct(string $dataPath){
+		$this->dataPath = $dataPath;
+
 		if(!file_exists($this->dataPath)){
 			throw new CorruptedWorldException("World data not found at $dataPath");
 		}
@@ -113,44 +109,40 @@ abstract class BaseNbtWorldData implements WorldData{
 	/* The below are common between PC and PE */
 
 	public function getName() : string{
-		return $this->compoundTag->getString(self::TAG_LEVEL_NAME);
-	}
-
-	public function setName(string $value) : void{
-		$this->compoundTag->setString(self::TAG_LEVEL_NAME, $value);
+		return $this->compoundTag->getString("LevelName");
 	}
 
 	public function getGenerator() : string{
-		return $this->compoundTag->getString(self::TAG_GENERATOR_NAME, "DEFAULT");
+		return $this->compoundTag->getString("generatorName", "DEFAULT");
 	}
 
 	public function getGeneratorOptions() : string{
-		return $this->compoundTag->getString(self::TAG_GENERATOR_OPTIONS, "");
+		return $this->compoundTag->getString("generatorOptions", "");
 	}
 
 	public function getSeed() : int{
-		return $this->compoundTag->getLong(self::TAG_RANDOM_SEED);
+		return $this->compoundTag->getLong("RandomSeed");
 	}
 
 	public function getTime() : int{
-		if(($timeTag = $this->compoundTag->getTag(self::TAG_TIME)) instanceof IntTag){ //some older PM worlds had this in the wrong format
+		if(($timeTag = $this->compoundTag->getTag("Time")) instanceof IntTag){ //some older PM worlds had this in the wrong format
 			return $timeTag->getValue();
 		}
-		return $this->compoundTag->getLong(self::TAG_TIME, 0);
+		return $this->compoundTag->getLong("Time", 0);
 	}
 
 	public function setTime(int $value) : void{
-		$this->compoundTag->setLong(self::TAG_TIME, $value);
+		$this->compoundTag->setLong("Time", $value);
 	}
 
 	public function getSpawn() : Vector3{
-		return new Vector3($this->compoundTag->getInt(self::TAG_SPAWN_X), $this->compoundTag->getInt(self::TAG_SPAWN_Y), $this->compoundTag->getInt(self::TAG_SPAWN_Z));
+		return new Vector3($this->compoundTag->getInt("SpawnX"), $this->compoundTag->getInt("SpawnY"), $this->compoundTag->getInt("SpawnZ"));
 	}
 
 	public function setSpawn(Vector3 $pos) : void{
-		$this->compoundTag->setInt(self::TAG_SPAWN_X, $pos->getFloorX());
-		$this->compoundTag->setInt(self::TAG_SPAWN_Y, $pos->getFloorY());
-		$this->compoundTag->setInt(self::TAG_SPAWN_Z, $pos->getFloorZ());
+		$this->compoundTag->setInt("SpawnX", $pos->getFloorX());
+		$this->compoundTag->setInt("SpawnY", $pos->getFloorY());
+		$this->compoundTag->setInt("SpawnZ", $pos->getFloorZ());
 	}
 
 }

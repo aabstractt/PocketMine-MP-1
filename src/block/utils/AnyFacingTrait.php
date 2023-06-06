@@ -23,15 +23,11 @@ declare(strict_types=1);
 
 namespace pocketmine\block\utils;
 
-use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\math\Facing;
 
 trait AnyFacingTrait{
-	protected int $facing = Facing::DOWN;
-
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->facing($this->facing);
-	}
+	/** @var int */
+	protected $facing = Facing::DOWN;
 
 	public function getFacing() : int{ return $this->facing; }
 

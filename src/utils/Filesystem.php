@@ -160,7 +160,12 @@ final class Filesystem{
 	 */
 	public static function getCleanedPaths() : array{ return self::$cleanedPaths; }
 
-	public static function cleanPath(string $path) : string{
+	/**
+	 * @param string $path
+	 *
+	 * @return string
+	 */
+	public static function cleanPath($path){
 		$result = str_replace([DIRECTORY_SEPARATOR, ".php", "phar://"], ["/", "", ""], $path);
 
 		//remove relative paths

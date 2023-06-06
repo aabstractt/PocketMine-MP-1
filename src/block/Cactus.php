@@ -23,8 +23,8 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
+use pocketmine\block\utils\BlockDataSerializer;
 use pocketmine\block\utils\SupportType;
-use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\entity\Entity;
 use pocketmine\event\block\BlockGrowEvent;
 use pocketmine\event\entity\EntityDamageByBlockEvent;
@@ -41,8 +41,16 @@ class Cactus extends Transparent{
 
 	protected int $age = 0;
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->boundedInt(4, 0, self::MAX_AGE, $this->age);
+	protected function writeStateToMeta() : int{
+		return $this->age;
+	}
+
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->age = BlockDataSerializer::readBoundedInt("age", $stateMeta, 0, self::MAX_AGE);
+	}
+
+	public function getStateBitmask() : int{
+		return 0b1111;
 	}
 
 	public function getAge() : int{ return $this->age; }
@@ -78,13 +86,10 @@ class Cactus extends Transparent{
 		return true;
 	}
 
-	private function canBeSupportedBy(Block $block) : bool{
-		return $block->hasSameTypeId($this) || $block->hasTypeTag(BlockTypeTags::SAND);
-	}
-
 	public function onNearbyBlockChange() : void{
+		$down = $this->getSide(Facing::DOWN);
 		$world = $this->position->getWorld();
-		if(!$this->canBeSupportedBy($this->getSide(Facing::DOWN))){
+		if($down->getId() !== BlockLegacyIds::SAND && !$down->isSameType($this)){
 			$world->useBreakOn($this->position);
 		}else{
 			foreach(Facing::HORIZONTAL as $side){
@@ -102,7 +107,7 @@ class Cactus extends Transparent{
 	}
 
 	public function onRandomTick() : void{
-		if(!$this->getSide(Facing::DOWN)->hasSameTypeId($this)){
+		if(!$this->getSide(Facing::DOWN)->isSameType($this)){
 			$world = $this->position->getWorld();
 			if($this->age === self::MAX_AGE){
 				for($y = 1; $y < 3; ++$y){
@@ -110,7 +115,7 @@ class Cactus extends Transparent{
 						break;
 					}
 					$b = $world->getBlockAt($this->position->x, $this->position->y + $y, $this->position->z);
-					if($b->getTypeId() === BlockTypeIds::AIR){
+					if($b->getId() === BlockLegacyIds::AIR){
 						$ev = new BlockGrowEvent($b, VanillaBlocks::CACTUS());
 						$ev->call();
 						if($ev->isCancelled()){
@@ -131,7 +136,8 @@ class Cactus extends Transparent{
 	}
 
 	public function place(BlockTransaction $tx, Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
-		if($this->canBeSupportedBy($this->getSide(Facing::DOWN))){
+		$down = $this->getSide(Facing::DOWN);
+		if($down->getId() === BlockLegacyIds::SAND || $down->isSameType($this)){
 			foreach(Facing::HORIZONTAL as $side){
 				if($this->getSide($side)->isSolid()){
 					return false;

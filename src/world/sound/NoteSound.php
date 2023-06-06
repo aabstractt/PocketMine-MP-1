@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace pocketmine\world\sound;
 
-use pocketmine\data\bedrock\NoteInstrumentIdMap;
 use pocketmine\math\Vector3;
 use pocketmine\network\mcpe\protocol\LevelSoundEventPacket;
 use pocketmine\network\mcpe\protocol\types\LevelSoundEvent;
@@ -39,7 +38,6 @@ class NoteSound implements Sound{
 	}
 
 	public function encode(Vector3 $pos) : array{
-		$instrumentId = NoteInstrumentIdMap::getInstance()->toId($this->instrument);
-		return [LevelSoundEventPacket::nonActorSound(LevelSoundEvent::NOTE, $pos, false, ($instrumentId << 8) | $this->note)];
+		return [LevelSoundEventPacket::nonActorSound(LevelSoundEvent::NOTE, $pos, false, ($this->instrument->getMagicNumber() << 8) | $this->note)];
 	}
 }

@@ -23,35 +23,26 @@ declare(strict_types=1);
 
 namespace pocketmine\inventory;
 
-use pocketmine\crafting\CraftingManagerFromDataHelper;
-use pocketmine\crafting\json\ItemStackData;
-use pocketmine\data\bedrock\BedrockDataFiles;
+use pocketmine\item\Durable;
 use pocketmine\item\Item;
-use pocketmine\utils\DestructorCallbackTrait;
-use pocketmine\utils\ObjectSet;
+use pocketmine\utils\Filesystem;
 use pocketmine\utils\SingletonTrait;
 use pocketmine\utils\Utils;
+use Symfony\Component\Filesystem\Path;
+use function json_decode;
 
 final class CreativeInventory{
 	use SingletonTrait;
-	use DestructorCallbackTrait;
 
 	/** @var Item[] */
 	private array $creative = [];
 
-	/** @phpstan-var ObjectSet<\Closure() : void> */
-	private ObjectSet $contentChangedCallbacks;
-
 	private function __construct(){
-		$this->contentChangedCallbacks = new ObjectSet();
-		$creativeItems = CraftingManagerFromDataHelper::loadJsonArrayOfObjectsFile(
-			BedrockDataFiles::CREATIVEITEMS_JSON,
-			ItemStackData::class
-		);
+		$creativeItems = json_decode(Filesystem::fileGetContents(Path::join(\pocketmine\RESOURCE_PATH, "legacy_creativeitems.json")), true);
+
 		foreach($creativeItems as $data){
-			$item = CraftingManagerFromDataHelper::deserializeItemStack($data);
-			if($item === null){
-				//unknown item
+			$item = Item::jsonDeserialize($data);
+			if($item->getName() === "Unknown"){
 				continue;
 			}
 			$this->add($item);
@@ -64,7 +55,6 @@ final class CreativeInventory{
 	 */
 	public function clear() : void{
 		$this->creative = [];
-		$this->onContentChange();
 	}
 
 	/**
@@ -80,7 +70,7 @@ final class CreativeInventory{
 
 	public function getItemIndex(Item $item) : int{
 		foreach($this->creative as $i => $d){
-			if($item->equals($d, true, false)){
+			if($item->equals($d, !($item instanceof Durable))){
 				return $i;
 			}
 		}
@@ -94,7 +84,6 @@ final class CreativeInventory{
 	 */
 	public function add(Item $item) : void{
 		$this->creative[] = clone $item;
-		$this->onContentChange();
 	}
 
 	/**
@@ -105,22 +94,10 @@ final class CreativeInventory{
 		$index = $this->getItemIndex($item);
 		if($index !== -1){
 			unset($this->creative[$index]);
-			$this->onContentChange();
 		}
 	}
 
 	public function contains(Item $item) : bool{
 		return $this->getItemIndex($item) !== -1;
-	}
-
-	/** @phpstan-return ObjectSet<\Closure() : void> */
-	public function getContentChangedCallbacks() : ObjectSet{
-		return $this->contentChangedCallbacks;
-	}
-
-	private function onContentChange() : void{
-		foreach($this->contentChangedCallbacks as $callback){
-			$callback();
-		}
 	}
 }

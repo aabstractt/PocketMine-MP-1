@@ -23,36 +23,43 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\LeavesType;
 use pocketmine\block\utils\SupportType;
-use pocketmine\data\runtime\RuntimeDataDescriber;
+use pocketmine\block\utils\TreeType;
 use pocketmine\event\block\LeavesDecayEvent;
 use pocketmine\item\Item;
+use pocketmine\item\ItemFactory;
+use pocketmine\item\ItemIds;
 use pocketmine\item\VanillaItems;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
 use pocketmine\player\Player;
-use pocketmine\utils\AssumptionFailedError;
 use pocketmine\world\BlockTransaction;
 use pocketmine\world\World;
 use function mt_rand;
 
 class Leaves extends Transparent{
-	protected LeavesType $leavesType; //immutable for now
+
+	protected TreeType $treeType;
 	protected bool $noDecay = false;
 	protected bool $checkDecay = false;
 
-	public function __construct(BlockIdentifier $idInfo, string $name, BlockTypeInfo $typeInfo, LeavesType $leavesType){
-		parent::__construct($idInfo, $name, $typeInfo);
-		$this->leavesType = $leavesType;
+	public function __construct(BlockIdentifier $idInfo, string $name, BlockBreakInfo $breakInfo, TreeType $treeType){
+		parent::__construct($idInfo, $name, $breakInfo);
+		$this->treeType = $treeType;
 	}
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->bool($this->noDecay);
-		$w->bool($this->checkDecay);
+	protected function writeStateToMeta() : int{
+		return ($this->noDecay ? BlockLegacyMetadata::LEAVES_FLAG_NO_DECAY : 0) | ($this->checkDecay ? BlockLegacyMetadata::LEAVES_FLAG_CHECK_DECAY : 0);
 	}
 
-	public function getLeavesType() : LeavesType{ return $this->leavesType; }
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->noDecay = ($stateMeta & BlockLegacyMetadata::LEAVES_FLAG_NO_DECAY) !== 0;
+		$this->checkDecay = ($stateMeta & BlockLegacyMetadata::LEAVES_FLAG_CHECK_DECAY) !== 0;
+	}
+
+	public function getStateBitmask() : int{
+		return 0b1100;
+	}
 
 	public function isNoDecay() : bool{ return $this->noDecay; }
 
@@ -91,7 +98,7 @@ class Leaves extends Transparent{
 			return true;
 		}
 
-		if($block instanceof Leaves && $distance <= 4){
+		if($block->getId() === $this->getId() && $distance <= 4){
 			foreach(Facing::ALL as $side){
 				if($this->findLog($pos->getSide($side), $visited, $distance + 1)){
 					return true;
@@ -139,22 +146,9 @@ class Leaves extends Transparent{
 
 		$drops = [];
 		if(mt_rand(1, 20) === 1){ //Saplings
-			$sapling = (match($this->leavesType){
-				LeavesType::ACACIA() => VanillaBlocks::ACACIA_SAPLING(),
-				LeavesType::BIRCH() => VanillaBlocks::BIRCH_SAPLING(),
-				LeavesType::DARK_OAK() => VanillaBlocks::DARK_OAK_SAPLING(),
-				LeavesType::JUNGLE() => VanillaBlocks::JUNGLE_SAPLING(),
-				LeavesType::OAK() => VanillaBlocks::OAK_SAPLING(),
-				LeavesType::SPRUCE() => VanillaBlocks::SPRUCE_SAPLING(),
-				LeavesType::MANGROVE(), //TODO: mangrove propagule
-				LeavesType::AZALEA(), LeavesType::FLOWERING_AZALEA() => null, //TODO: azalea
-				default => throw new AssumptionFailedError("Unreachable")
-			})?->asItem();
-			if($sapling !== null){
-				$drops[] = $sapling;
-			}
+			$drops[] = ItemFactory::getInstance()->get(ItemIds::SAPLING, $this->treeType->getMagicNumber());
 		}
-		if(($this->leavesType->equals(LeavesType::OAK()) || $this->leavesType->equals(LeavesType::DARK_OAK())) && mt_rand(1, 200) === 1){ //Apples
+		if(($this->treeType->equals(TreeType::OAK()) || $this->treeType->equals(TreeType::DARK_OAK())) && mt_rand(1, 200) === 1){ //Apples
 			$drops[] = VanillaItems::APPLE();
 		}
 		if(mt_rand(1, 50) === 1){

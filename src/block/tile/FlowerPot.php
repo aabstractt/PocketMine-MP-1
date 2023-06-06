@@ -25,16 +25,10 @@ namespace pocketmine\block\tile;
 
 use pocketmine\block\Air;
 use pocketmine\block\Block;
-use pocketmine\block\RuntimeBlockStateRegistry;
-use pocketmine\data\bedrock\block\BlockStateDeserializeException;
-use pocketmine\data\bedrock\block\BlockStateNames;
-use pocketmine\data\SavedDataLoadingException;
-use pocketmine\nbt\tag\ByteTag;
+use pocketmine\block\BlockFactory;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\IntTag;
 use pocketmine\nbt\tag\ShortTag;
-use pocketmine\network\mcpe\convert\TypeConverter;
-use pocketmine\world\format\io\GlobalBlockStateHandlers;
 
 /**
  * @deprecated
@@ -43,41 +37,25 @@ use pocketmine\world\format\io\GlobalBlockStateHandlers;
 class FlowerPot extends Spawnable{
 	private const TAG_ITEM = "item";
 	private const TAG_ITEM_DATA = "mData";
-	private const TAG_PLANT_BLOCK = "PlantBlock";
 
 	private ?Block $plant = null;
 
 	public function readSaveData(CompoundTag $nbt) : void{
-		$blockStateData = null;
-
-		$blockDataUpgrader = GlobalBlockStateHandlers::getUpgrader();
 		if(($itemIdTag = $nbt->getTag(self::TAG_ITEM)) instanceof ShortTag && ($itemMetaTag = $nbt->getTag(self::TAG_ITEM_DATA)) instanceof IntTag){
 			try{
-				$blockStateData = $blockDataUpgrader->upgradeIntIdMeta($itemIdTag->getValue(), $itemMetaTag->getValue());
-			}catch(BlockStateDeserializeException $e){
-				throw new SavedDataLoadingException("Error loading legacy flower pot item data: " . $e->getMessage(), 0, $e);
+				$this->setPlant(BlockFactory::getInstance()->get($itemIdTag->getValue(), $itemMetaTag->getValue()));
+			}catch(\InvalidArgumentException $e){
+				//noop
 			}
-		}elseif(($plantBlockTag = $nbt->getCompoundTag(self::TAG_PLANT_BLOCK)) !== null){
-			try{
-				$blockStateData = $blockDataUpgrader->upgradeBlockStateNbt($plantBlockTag);
-			}catch(BlockStateDeserializeException $e){
-				throw new SavedDataLoadingException("Error loading " . self::TAG_PLANT_BLOCK . " tag for flower pot: " . $e->getMessage(), 0, $e);
-			}
-		}
-
-		if($blockStateData !== null){
-			try{
-				$blockStateId = GlobalBlockStateHandlers::getDeserializer()->deserialize($blockStateData);
-			}catch(BlockStateDeserializeException $e){
-				throw new SavedDataLoadingException("Error deserializing plant for flower pot: " . $e->getMessage(), 0, $e);
-			}
-			$this->setPlant(RuntimeBlockStateRegistry::getInstance()->fromStateId($blockStateId));
+		}else{
+			//TODO: new PlantBlock tag
 		}
 	}
 
 	protected function writeSaveData(CompoundTag $nbt) : void{
 		if($this->plant !== null){
-			$nbt->setTag(self::TAG_PLANT_BLOCK, GlobalBlockStateHandlers::getSerializer()->serialize($this->plant->getStateId())->toNbt());
+			$nbt->setShort(self::TAG_ITEM, $this->plant->getId());
+			$nbt->setInt(self::TAG_ITEM_DATA, $this->plant->getMeta());
 		}
 	}
 
@@ -95,11 +73,8 @@ class FlowerPot extends Spawnable{
 
 	protected function addAdditionalSpawnData(CompoundTag $nbt) : void{
 		if($this->plant !== null){
-			$nbt->setTag(self::TAG_PLANT_BLOCK, TypeConverter::getInstance()->getBlockTranslator()->internalIdToNetworkStateData($this->plant->getStateId())->toNbt());
+			$nbt->setShort(self::TAG_ITEM, $this->plant->getId());
+			$nbt->setInt(self::TAG_ITEM_DATA, $this->plant->getMeta());
 		}
-	}
-
-	public function getRenderUpdateBugWorkaroundStateProperties(Block $block) : array{
-		return [BlockStateNames::UPDATE_BIT => new ByteTag(1)];
 	}
 }

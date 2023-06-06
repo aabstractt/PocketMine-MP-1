@@ -88,17 +88,19 @@ class Language{
 		throw new LanguageNotFoundException("Language directory $path does not exist or is not a directory");
 	}
 
-	protected string $langName;
+	/** @var string */
+	protected $langName;
+
 	/**
 	 * @var string[]
 	 * @phpstan-var array<string, string>
 	 */
-	protected array $lang = [];
+	protected $lang = [];
 	/**
 	 * @var string[]
 	 * @phpstan-var array<string, string>
 	 */
-	protected array $fallbackLang = [];
+	protected $fallbackLang = [];
 
 	/**
 	 * @throws LanguageNotFoundException

@@ -29,10 +29,12 @@ use pocketmine\world\BlockTransaction;
 use pocketmine\world\ChunkManager;
 
 class BirchTree extends Tree{
-	public function __construct(
-		protected bool $superBirch = false
-	){
+	/** @var bool */
+	protected $superBirch = false;
+
+	public function __construct(bool $superBirch = false){
 		parent::__construct(VanillaBlocks::BIRCH_LOG(), VanillaBlocks::BIRCH_LEAVES());
+		$this->superBirch = $superBirch;
 	}
 
 	public function getBlockTransaction(ChunkManager $world, int $x, int $y, int $z, Random $random) : ?BlockTransaction{

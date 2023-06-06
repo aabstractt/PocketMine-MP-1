@@ -42,7 +42,7 @@ class Wheat extends Crops{
 		}
 	}
 
-	public function asItem() : Item{
+	public function getPickedItem(bool $addUserData = false) : Item{
 		return VanillaItems::WHEAT_SEEDS();
 	}
 }

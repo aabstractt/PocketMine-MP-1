@@ -23,8 +23,7 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\SaplingType;
-use pocketmine\data\runtime\RuntimeDataDescriber;
+use pocketmine\block\utils\TreeType;
 use pocketmine\event\block\StructureGrowEvent;
 use pocketmine\item\Fertilizer;
 use pocketmine\item\Item;
@@ -37,17 +36,26 @@ use pocketmine\world\generator\object\TreeFactory;
 use function mt_rand;
 
 class Sapling extends Flowable{
+
 	protected bool $ready = false;
 
-	private SaplingType $saplingType;
+	private TreeType $treeType;
 
-	public function __construct(BlockIdentifier $idInfo, string $name, BlockTypeInfo $typeInfo, SaplingType $saplingType){
-		parent::__construct($idInfo, $name, $typeInfo);
-		$this->saplingType = $saplingType;
+	public function __construct(BlockIdentifier $idInfo, string $name, BlockBreakInfo $breakInfo, TreeType $treeType){
+		parent::__construct($idInfo, $name, $breakInfo);
+		$this->treeType = $treeType;
 	}
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->bool($this->ready);
+	protected function writeStateToMeta() : int{
+		return ($this->ready ? BlockLegacyMetadata::SAPLING_FLAG_READY : 0);
+	}
+
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->ready = ($stateMeta & BlockLegacyMetadata::SAPLING_FLAG_READY) !== 0;
+	}
+
+	public function getStateBitmask() : int{
+		return 0b1000;
 	}
 
 	public function isReady() : bool{ return $this->ready; }
@@ -60,14 +68,14 @@ class Sapling extends Flowable{
 
 	public function place(BlockTransaction $tx, Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
 		$down = $this->getSide(Facing::DOWN);
-		if($down->hasTypeTag(BlockTypeTags::DIRT) || $down->hasTypeTag(BlockTypeTags::MUD)){
+		if($down->getId() === BlockLegacyIds::GRASS || $down->getId() === BlockLegacyIds::DIRT || $down->getId() === BlockLegacyIds::FARMLAND){
 			return parent::place($tx, $item, $blockReplace, $blockClicked, $face, $clickVector, $player);
 		}
 
 		return false;
 	}
 
-	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null, array &$returnedItems = []) : bool{
+	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
 		if($item instanceof Fertilizer && $this->grow($player)){
 			$item->pop();
 
@@ -78,8 +86,7 @@ class Sapling extends Flowable{
 	}
 
 	public function onNearbyBlockChange() : void{
-		$down = $this->getSide(Facing::DOWN);
-		if(!$down->hasTypeTag(BlockTypeTags::DIRT) && !$down->hasTypeTag(BlockTypeTags::MUD)){
+		if($this->getSide(Facing::DOWN)->isTransparent()){
 			$this->position->getWorld()->useBreakOn($this->position);
 		}
 	}
@@ -102,7 +109,7 @@ class Sapling extends Flowable{
 
 	private function grow(?Player $player) : bool{
 		$random = new Random(mt_rand());
-		$tree = TreeFactory::get($random, $this->saplingType->getTreeType());
+		$tree = TreeFactory::get($random, $this->treeType);
 		$transaction = $tree?->getBlockTransaction($this->position->getWorld(), $this->position->getFloorX(), $this->position->getFloorY(), $this->position->getFloorZ(), $random);
 		if($transaction === null){
 			return false;

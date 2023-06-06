@@ -26,13 +26,18 @@ namespace pocketmine\inventory;
 use pocketmine\player\Player;
 
 class PlayerCursorInventory extends SimpleInventory implements TemporaryInventory{
-	public function __construct(
-		protected Player $holder
-	){
+	/** @var Player */
+	protected $holder;
+
+	public function __construct(Player $holder){
+		$this->holder = $holder;
 		parent::__construct(1);
 	}
 
-	public function getHolder() : Player{
+	/**
+	 * @return Player
+	 */
+	public function getHolder(){
 		return $this->holder;
 	}
 }

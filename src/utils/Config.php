@@ -89,7 +89,7 @@ class Config{
 	private bool $changed = false;
 
 	/** @var int[] */
-	public static array $formats = [
+	public static $formats = [
 		"properties" => Config::PROPERTIES,
 		"cnf" => Config::CNF,
 		"conf" => Config::CNF,
@@ -338,7 +338,11 @@ class Config{
 		$this->remove($k);
 	}
 
-	public function setNested(string $key, mixed $value) : void{
+	/**
+	 * @param string $key
+	 * @param mixed  $value
+	 */
+	public function setNested($key, $value) : void{
 		$vars = explode(".", $key);
 		$base = array_shift($vars);
 
@@ -361,7 +365,13 @@ class Config{
 		$this->changed = true;
 	}
 
-	public function getNested(string $key, mixed $default = null) : mixed{
+	/**
+	 * @param string $key
+	 * @param mixed  $default
+	 *
+	 * @return mixed
+	 */
+	public function getNested($key, $default = null){
 		if(isset($this->nestedCache[$key])){
 			return $this->nestedCache[$key];
 		}
@@ -407,11 +417,21 @@ class Config{
 		}
 	}
 
-	public function get(string $k, mixed $default = false) : mixed{
+	/**
+	 * @param string $k
+	 * @param mixed  $default
+	 *
+	 * @return bool|mixed
+	 */
+	public function get($k, $default = false){
 		return $this->config[$k] ?? $default;
 	}
 
-	public function set(string $k, mixed $v = true) : void{
+	/**
+	 * @param string $k key to be set
+	 * @param mixed  $v value to set key
+	 */
+	public function set($k, $v = true) : void{
 		$this->config[$k] = $v;
 		$this->changed = true;
 		foreach(Utils::stringifyKeys($this->nestedCache) as $nestedKey => $nvalue){
@@ -431,9 +451,10 @@ class Config{
 	}
 
 	/**
-	 * @param bool $lowercase If set, searches Config in single-case / lowercase.
+	 * @param string $k
+	 * @param bool   $lowercase If set, searches Config in single-case / lowercase.
 	 */
-	public function exists(string $k, bool $lowercase = false) : bool{
+	public function exists($k, bool $lowercase = false) : bool{
 		if($lowercase){
 			$k = strtolower($k); //Convert requested  key to lower
 			$array = array_change_key_case($this->config, CASE_LOWER); //Change all keys in array to lower
@@ -443,7 +464,10 @@ class Config{
 		}
 	}
 
-	public function remove(string $k) : void{
+	/**
+	 * @param string $k
+	 */
+	public function remove($k) : void{
 		unset($this->config[$k]);
 		$this->changed = true;
 	}
@@ -471,7 +495,7 @@ class Config{
 	 * @phpstan-param array<string, mixed> $data
 	 * @phpstan-param-out array<string, mixed> $data
 	 */
-	private function fillDefaults(array $default, array &$data) : int{
+	private function fillDefaults(array $default, &$data) : int{
 		$changed = 0;
 		foreach(Utils::stringifyKeys($default) as $k => $v){
 			if(is_array($v)){

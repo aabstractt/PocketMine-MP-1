@@ -27,7 +27,9 @@ use pocketmine\scheduler\AsyncTask;
 use pocketmine\world\World;
 
 class GeneratorUnregisterTask extends AsyncTask{
-	public int $worldId;
+
+	/** @var int */
+	public $worldId;
 
 	public function __construct(World $world){
 		$this->worldId = $world->getId();

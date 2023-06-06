@@ -31,10 +31,11 @@ use pocketmine\lang\KnownTranslationFactory;
 use pocketmine\lang\Translatable;
 use pocketmine\permission\PermissionManager;
 use pocketmine\Server;
+use pocketmine\timings\Timings;
+use pocketmine\timings\TimingsHandler;
 use pocketmine\utils\BroadcastLoggerForwarder;
 use pocketmine\utils\TextFormat;
 use function explode;
-use function implode;
 use function str_replace;
 
 abstract class Command{
@@ -52,13 +53,17 @@ abstract class Command{
 
 	private ?CommandMap $commandMap = null;
 
-	protected Translatable|string $description = "";
+	/** @var Translatable|string */
+	protected $description = "";
 
-	protected Translatable|string $usageMessage;
+	/** @var Translatable|string */
+	protected $usageMessage;
 
-	/** @var string[] */
-	private array $permission = [];
+	private ?string $permission = null;
 	private ?string $permissionMessage = null;
+
+	/** @var TimingsHandler|null */
+	public $timings = null;
 
 	/**
 	 * @param string[] $aliases
@@ -83,28 +88,19 @@ abstract class Command{
 		return $this->name;
 	}
 
-	/**
-	 * @return string[]
-	 */
-	public function getPermissions() : array{
+	public function getPermission() : ?string{
 		return $this->permission;
 	}
 
-	/**
-	 * @param string[] $permissions
-	 */
-	public function setPermissions(array $permissions) : void{
-		$permissionManager = PermissionManager::getInstance();
-		foreach($permissions as $perm){
-			if($permissionManager->getPermission($perm) === null){
-				throw new \InvalidArgumentException("Cannot use non-existing permission \"$perm\"");
+	public function setPermission(?string $permission) : void{
+		if($permission !== null){
+			foreach(explode(";", $permission) as $perm){
+				if(PermissionManager::getInstance()->getPermission($perm) === null){
+					throw new \InvalidArgumentException("Cannot use non-existing permission \"$perm\"");
+				}
 			}
 		}
-		$this->permission = $permissions;
-	}
-
-	public function setPermission(?string $permission) : void{
-		$this->setPermissions($permission === null ? [] : explode(";", $permission));
+		$this->permission = $permission;
 	}
 
 	public function testPermission(CommandSender $target, ?string $permission = null) : bool{
@@ -115,15 +111,19 @@ abstract class Command{
 		if($this->permissionMessage === null){
 			$target->sendMessage(KnownTranslationFactory::pocketmine_command_error_permission($this->name)->prefix(TextFormat::RED));
 		}elseif($this->permissionMessage !== ""){
-			$target->sendMessage(str_replace("<permission>", $permission ?? implode(";", $this->permission), $this->permissionMessage));
+			$target->sendMessage(str_replace("<permission>", $permission ?? $this->permission, $this->permissionMessage));
 		}
 
 		return false;
 	}
 
 	public function testPermissionSilent(CommandSender $target, ?string $permission = null) : bool{
-		$list = $permission !== null ? [$permission] : $this->permission;
-		foreach($list as $p){
+		$permission ??= $this->permission;
+		if($permission === null || $permission === ""){
+			return true;
+		}
+
+		foreach(explode(";", $permission) as $p){
 			if($target->hasPermission($p)){
 				return true;
 			}
@@ -139,6 +139,7 @@ abstract class Command{
 	public function setLabel(string $name) : bool{
 		$this->nextLabel = $name;
 		if(!$this->isRegistered()){
+			$this->timings = new TimingsHandler("Command: " . $name, group: Timings::GROUP_BREAKDOWN);
 			$this->label = $name;
 
 			return true;

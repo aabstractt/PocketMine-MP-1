@@ -33,19 +33,23 @@ use function implode;
 
 class TitleCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"title",
+			$name,
 			KnownTranslationFactory::pocketmine_command_title_description(),
 			KnownTranslationFactory::commands_title_usage()
 		);
-		$this->setPermissions([
+		$this->setPermission(implode(";", [
 			DefaultPermissionNames::COMMAND_TITLE_SELF,
 			DefaultPermissionNames::COMMAND_TITLE_OTHER
-		]);
+		]));
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
 		if(count($args) < 2){
 			throw new InvalidCommandSyntaxException();
 		}

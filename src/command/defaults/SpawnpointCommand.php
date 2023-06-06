@@ -32,23 +32,28 @@ use pocketmine\player\Player;
 use pocketmine\world\Position;
 use pocketmine\world\World;
 use function count;
+use function implode;
 use function round;
 
 class SpawnpointCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"spawnpoint",
+			$name,
 			KnownTranslationFactory::pocketmine_command_spawnpoint_description(),
 			KnownTranslationFactory::commands_spawnpoint_usage()
 		);
-		$this->setPermissions([
+		$this->setPermission(implode(";", [
 			DefaultPermissionNames::COMMAND_SPAWNPOINT_SELF,
 			DefaultPermissionNames::COMMAND_SPAWNPOINT_OTHER
-		]);
+		]));
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
 		$target = $this->fetchPermittedPlayerTarget($sender, $args[0] ?? null, DefaultPermissionNames::COMMAND_SPAWNPOINT_SELF, DefaultPermissionNames::COMMAND_SPAWNPOINT_OTHER);
 		if($target === null){
 			return true;

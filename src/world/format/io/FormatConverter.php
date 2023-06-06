@@ -24,7 +24,6 @@ declare(strict_types=1);
 namespace pocketmine\world\format\io;
 
 use pocketmine\utils\Filesystem;
-use pocketmine\world\format\Chunk;
 use pocketmine\world\generator\GeneratorManager;
 use pocketmine\world\generator\normal\Normal;
 use pocketmine\world\WorldCreationOptions;
@@ -68,7 +67,7 @@ class FormatConverter{
 		return $this->backupPath;
 	}
 
-	public function execute() : void{
+	public function execute() : WritableWorldProvider{
 		$new = $this->generateNew();
 
 		$this->populateLevelData($new->getWorldData());
@@ -92,6 +91,7 @@ class FormatConverter{
 		}
 
 		$this->logger->info("Conversion completed");
+		return $this->newProvider->fromPath($path);
 	}
 
 	private function generateNew() : WritableWorldProvider{
@@ -113,7 +113,7 @@ class FormatConverter{
 			->setDifficulty($data->getDifficulty())
 		);
 
-		return $this->newProvider->fromPath($convertedOutput, $this->logger);
+		return $this->newProvider->fromPath($convertedOutput);
 	}
 
 	private function populateLevelData(WorldData $data) : void{
@@ -141,9 +141,10 @@ class FormatConverter{
 
 		$start = microtime(true);
 		$thisRound = $start;
-		foreach($this->oldProvider->getAllChunks(true, $this->logger) as $coords => $loadedChunkData){
+		foreach($this->oldProvider->getAllChunks(true, $this->logger) as $coords => $chunk){
 			[$chunkX, $chunkZ] = $coords;
-			$new->saveChunk($chunkX, $chunkZ, $loadedChunkData->getData(), Chunk::DIRTY_FLAGS_ALL);
+			$chunk->getChunk()->setTerrainDirty();
+			$new->saveChunk($chunkX, $chunkZ, $chunk);
 			$counter++;
 			if(($counter % $this->chunksPerProgressUpdate) === 0){
 				$time = microtime(true);

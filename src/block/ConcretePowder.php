@@ -23,7 +23,7 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\block\utils\ColoredTrait;
+use pocketmine\block\utils\ColorInMetadataTrait;
 use pocketmine\block\utils\DyeColor;
 use pocketmine\block\utils\Fallable;
 use pocketmine\block\utils\FallableTrait;
@@ -31,19 +31,19 @@ use pocketmine\event\block\BlockFormEvent;
 use pocketmine\math\Facing;
 
 class ConcretePowder extends Opaque implements Fallable{
-	use ColoredTrait;
+	use ColorInMetadataTrait;
 	use FallableTrait {
 		onNearbyBlockChange as protected startFalling;
 	}
 
-	public function __construct(BlockIdentifier $idInfo, string $name, BlockTypeInfo $typeInfo){
+	public function __construct(BlockIdentifier $idInfo, string $name, BlockBreakInfo $breakInfo){
 		$this->color = DyeColor::WHITE();
-		parent::__construct($idInfo, $name, $typeInfo);
+		parent::__construct($idInfo, $name, $breakInfo);
 	}
 
 	public function onNearbyBlockChange() : void{
-		if(($water = $this->getAdjacentWater()) !== null){
-			$ev = new BlockFormEvent($this, VanillaBlocks::CONCRETE()->setColor($this->color), $water);
+		if(($block = $this->checkAdjacentWater()) !== null){
+			$ev = new BlockFormEvent($this, $block);
 			$ev->call();
 			if(!$ev->isCancelled()){
 				$this->position->getWorld()->setBlock($this->position, $ev->getNewState());
@@ -54,20 +54,16 @@ class ConcretePowder extends Opaque implements Fallable{
 	}
 
 	public function tickFalling() : ?Block{
-		if($this->getAdjacentWater() === null){
-			return null;
-		}
-		return VanillaBlocks::CONCRETE()->setColor($this->color);
+		return $this->checkAdjacentWater();
 	}
 
-	private function getAdjacentWater() : ?Water{
+	private function checkAdjacentWater() : ?Block{
 		foreach(Facing::ALL as $i){
 			if($i === Facing::DOWN){
 				continue;
 			}
-			$block = $this->getSide($i);
-			if($block instanceof Water){
-				return $block;
+			if($this->getSide($i) instanceof Water){
+				return VanillaBlocks::CONCRETE()->setColor($this->color);
 			}
 		}
 

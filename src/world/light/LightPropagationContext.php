@@ -25,21 +25,27 @@ namespace pocketmine\world\light;
 
 final class LightPropagationContext{
 
-	/** @phpstan-var \SplQueue<array{int, int, int}> */
-	public \SplQueue $spreadQueue;
+	/**
+	 * @var \SplQueue
+	 * @phpstan-var \SplQueue<array{int, int, int}>
+	 */
+	public $spreadQueue;
 	/**
 	 * @var true[]
 	 * @phpstan-var array<int, true>
 	 */
-	public array $spreadVisited = [];
+	public $spreadVisited = [];
 
-	/** @phpstan-var \SplQueue<array{int, int, int, int}> */
-	public \SplQueue $removalQueue;
+	/**
+	 * @var \SplQueue
+	 * @phpstan-var \SplQueue<array{int, int, int, int}>
+	 */
+	public $removalQueue;
 	/**
 	 * @var true[]
 	 * @phpstan-var array<int, true>
 	 */
-	public array $removalVisited = [];
+	public $removalVisited = [];
 
 	public function __construct(){
 		$this->removalQueue = new \SplQueue();

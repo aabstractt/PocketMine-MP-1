@@ -42,7 +42,7 @@ class Beetroot extends Crops{
 		];
 	}
 
-	public function asItem() : Item{
+	public function getPickedItem(bool $addUserData = false) : Item{
 		return VanillaItems::BEETROOT_SEEDS();
 	}
 }

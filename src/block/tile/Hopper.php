@@ -69,11 +69,17 @@ class Hopper extends Spawnable implements Container, Nameable{
 		return "Hopper";
 	}
 
-	public function getInventory() : HopperInventory{
+	/**
+	 * @return HopperInventory
+	 */
+	public function getInventory(){
 		return $this->inventory;
 	}
 
-	public function getRealInventory() : HopperInventory{
+	/**
+	 * @return HopperInventory
+	 */
+	public function getRealInventory(){
 		return $this->inventory;
 	}
 }

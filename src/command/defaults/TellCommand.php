@@ -36,9 +36,9 @@ use function implode;
 
 class TellCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"tell",
+			$name,
 			KnownTranslationFactory::pocketmine_command_tell_description(),
 			KnownTranslationFactory::commands_message_usage(),
 			["w", "msg"]
@@ -47,6 +47,10 @@ class TellCommand extends VanillaCommand{
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
 		if(count($args) < 2){
 			throw new InvalidCommandSyntaxException();
 		}

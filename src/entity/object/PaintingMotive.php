@@ -27,7 +27,7 @@ class PaintingMotive{
 	private static bool $initialized = false;
 
 	/** @var PaintingMotive[] */
-	protected static array $motives = [];
+	protected static $motives = [];
 
 	public static function init() : void{
 		self::$initialized = true;
@@ -91,11 +91,18 @@ class PaintingMotive{
 		return self::$motives;
 	}
 
-	public function __construct(
-		protected int $width,
-		protected int $height,
-		protected string $name
-	){}
+	/** @var string */
+	protected $name;
+	/** @var int */
+	protected $width;
+	/** @var int */
+	protected $height;
+
+	public function __construct(int $width, int $height, string $name){
+		$this->name = $name;
+		$this->width = $width;
+		$this->height = $height;
+	}
 
 	public function getName() : string{
 		return $this->name;

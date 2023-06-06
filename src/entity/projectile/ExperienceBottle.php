@@ -32,7 +32,7 @@ use function mt_rand;
 class ExperienceBottle extends Throwable{
 	public static function getNetworkTypeId() : string{ return EntityIds::XP_BOTTLE; }
 
-	protected function getInitialGravity() : float{ return 0.07; }
+	protected $gravity = 0.07;
 
 	public function getResultDamage() : int{
 		return -1;

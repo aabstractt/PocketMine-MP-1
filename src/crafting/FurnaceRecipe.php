@@ -29,13 +29,14 @@ class FurnaceRecipe{
 
 	public function __construct(
 		private Item $result,
-		private RecipeIngredient $ingredient
+		private Item $ingredient
 	){
 		$this->result = clone $result;
+		$this->ingredient = clone $ingredient;
 	}
 
-	public function getInput() : RecipeIngredient{
-		return $this->ingredient;
+	public function getInput() : Item{
+		return clone $this->ingredient;
 	}
 
 	public function getResult() : Item{

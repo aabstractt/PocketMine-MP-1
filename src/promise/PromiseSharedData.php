@@ -43,6 +43,9 @@ final class PromiseSharedData{
 
 	public bool $resolved = false;
 
-	/** @phpstan-var TValue|null */
-	public mixed $result = null;
+	/**
+	 * @var mixed
+	 * @phpstan-var TValue|null
+	 */
+	public $result = null;
 }

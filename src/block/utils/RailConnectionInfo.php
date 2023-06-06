@@ -23,7 +23,7 @@ declare(strict_types=1);
 
 namespace pocketmine\block\utils;
 
-use pocketmine\data\bedrock\block\BlockLegacyMetadata;
+use pocketmine\block\BlockLegacyMetadata;
 use pocketmine\math\Facing;
 
 final class RailConnectionInfo{

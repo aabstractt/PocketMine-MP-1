@@ -23,16 +23,18 @@ declare(strict_types=1);
 
 namespace pocketmine\item;
 
-class Boat extends Item{
-	private BoatType $boatType;
+use pocketmine\block\utils\TreeType;
 
-	public function __construct(ItemIdentifier $identifier, string $name, BoatType $boatType){
+class Boat extends Item{
+	private TreeType $woodType;
+
+	public function __construct(ItemIdentifier $identifier, string $name, TreeType $woodType){
 		parent::__construct($identifier, $name);
-		$this->boatType = $boatType;
+		$this->woodType = $woodType;
 	}
 
-	public function getType() : BoatType{
-		return $this->boatType;
+	public function getWoodType() : TreeType{
+		return $this->woodType;
 	}
 
 	public function getFuelTime() : int{

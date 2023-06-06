@@ -33,7 +33,8 @@ use pocketmine\nbt\tag\CompoundTag;
 class Comparator extends Tile{
 	private const TAG_OUTPUT_SIGNAL = "OutputSignal"; //int
 
-	protected int $signalStrength = 0;
+	/** @var int */
+	protected $signalStrength = 0;
 
 	public function getSignalStrength() : int{
 		return $this->signalStrength;

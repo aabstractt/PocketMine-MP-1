@@ -25,5 +25,10 @@ namespace pocketmine\inventory;
 
 interface InventoryHolder{
 
-	public function getInventory() : Inventory;
+	/**
+	 * Get the object related inventory
+	 *
+	 * @return Inventory
+	 */
+	public function getInventory();
 }

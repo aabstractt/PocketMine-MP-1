@@ -23,9 +23,11 @@ declare(strict_types=1);
 
 namespace pocketmine\block;
 
-use pocketmine\data\runtime\RuntimeDataDescriber;
+use pocketmine\block\utils\InvalidBlockStateException;
+use pocketmine\data\bedrock\CoralTypeIdMap;
 use pocketmine\item\Item;
-use pocketmine\item\VanillaItems;
+use pocketmine\item\ItemFactory;
+use pocketmine\item\ItemIds;
 use pocketmine\math\Axis;
 use pocketmine\math\Facing;
 use pocketmine\math\Vector3;
@@ -35,10 +37,49 @@ use function atan2;
 use function rad2deg;
 
 final class FloorCoralFan extends BaseCoral{
+
+	protected BlockIdentifierFlattened $idInfoFlattened;
+
 	private int $axis = Axis::X;
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->horizontalAxis($this->axis);
+	public function __construct(BlockIdentifierFlattened $idInfo, string $name, BlockBreakInfo $breakInfo){
+		$this->idInfoFlattened = $idInfo;
+		parent::__construct($idInfo, $name, $breakInfo);
+	}
+
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$this->dead = $id === $this->idInfoFlattened->getSecondId();
+		$this->axis = ($stateMeta >> 3) === BlockLegacyMetadata::CORAL_FAN_EAST_WEST ? Axis::X : Axis::Z;
+		$coralType = CoralTypeIdMap::getInstance()->fromId($stateMeta & BlockLegacyMetadata::CORAL_FAN_TYPE_MASK);
+		if($coralType === null){
+			throw new InvalidBlockStateException("No such coral type");
+		}
+		$this->coralType = $coralType;
+	}
+
+	public function getId() : int{
+		return $this->dead ? $this->idInfoFlattened->getSecondId() : parent::getId();
+	}
+
+	public function asItem() : Item{
+		//TODO: HACK! workaround dead flag being lost when broken / blockpicked (original impl only uses first ID)
+		return ItemFactory::getInstance()->get(
+			$this->dead ? ItemIds::CORAL_FAN_DEAD : ItemIds::CORAL_FAN,
+			$this->writeStateToItemMeta()
+		);
+	}
+
+	protected function writeStateToMeta() : int{
+		return (($this->axis === Axis::X ? BlockLegacyMetadata::CORAL_FAN_EAST_WEST : BlockLegacyMetadata::CORAL_FAN_NORTH_SOUTH) << 3) |
+			CoralTypeIdMap::getInstance()->toId($this->coralType);
+	}
+
+	protected function writeStateToItemMeta() : int{
+		return CoralTypeIdMap::getInstance()->toId($this->coralType);
+	}
+
+	public function getStateBitmask() : int{
+		return 0b1111;
 	}
 
 	public function getAxis() : int{ return $this->axis; }
@@ -67,9 +108,6 @@ final class FloorCoralFan extends BaseCoral{
 				$this->axis = Axis::Z;
 			}
 		}
-
-		$this->dead = !$this->isCoveredWithWater();
-
 		return parent::place($tx, $item, $blockReplace, $blockClicked, $face, $clickVector, $player);
 	}
 
@@ -86,7 +124,4 @@ final class FloorCoralFan extends BaseCoral{
 		return $block->getSupportType(Facing::UP)->hasCenterSupport();
 	}
 
-	public function asItem() : Item{
-		return VanillaItems::CORAL_FAN()->setCoralType($this->coralType)->setDead($this->dead);
-	}
 }

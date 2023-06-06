@@ -36,9 +36,9 @@ use function inet_pton;
 
 class BanIpCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"ban-ip",
+			$name,
 			KnownTranslationFactory::pocketmine_command_ban_ip_description(),
 			KnownTranslationFactory::commands_banip_usage()
 		);
@@ -46,6 +46,10 @@ class BanIpCommand extends VanillaCommand{
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
 		if(count($args) === 0){
 			throw new InvalidCommandSyntaxException();
 		}
@@ -78,7 +82,7 @@ class BanIpCommand extends VanillaCommand{
 
 		foreach($sender->getServer()->getOnlinePlayers() as $player){
 			if($player->getNetworkSession()->getIp() === $ip){
-				$player->kick(KnownTranslationFactory::pocketmine_disconnect_ban($reason !== "" ? $reason : KnownTranslationFactory::pocketmine_disconnect_ban_ip()));
+				$player->kick("Banned by admin. Reason: " . ($reason !== "" ? $reason : "IP banned."));
 			}
 		}
 

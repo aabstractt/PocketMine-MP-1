@@ -38,9 +38,9 @@ class PermissionManager{
 	}
 
 	/** @var Permission[] */
-	protected array $permissions = [];
+	protected $permissions = [];
 	/** @var PermissibleInternal[][] */
-	protected array $permSubs = [];
+	protected $permSubs = [];
 
 	public function getPermission(string $name) : ?Permission{
 		return $this->permissions[$name] ?? null;
@@ -56,7 +56,10 @@ class PermissionManager{
 		return false;
 	}
 
-	public function removePermission(Permission|string $permission) : void{
+	/**
+	 * @param string|Permission $permission
+	 */
+	public function removePermission($permission) : void{
 		if($permission instanceof Permission){
 			unset($this->permissions[$permission->getName()]);
 		}else{

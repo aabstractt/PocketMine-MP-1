@@ -39,8 +39,10 @@ class Squid extends WaterAnimal{
 
 	public static function getNetworkTypeId() : string{ return EntityIds::SQUID; }
 
-	public ?Vector3 $swimDirection = null;
-	public float $swimSpeed = 0.1;
+	/** @var Vector3|null */
+	public $swimDirection = null;
+	/** @var float */
+	public $swimSpeed = 0.1;
 
 	private int $switchDirectionTicker = 0;
 

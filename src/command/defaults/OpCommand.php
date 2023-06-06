@@ -35,9 +35,9 @@ use function count;
 
 class OpCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"op",
+			$name,
 			KnownTranslationFactory::pocketmine_command_op_description(),
 			KnownTranslationFactory::commands_op_usage()
 		);
@@ -45,6 +45,10 @@ class OpCommand extends VanillaCommand{
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
+
 		if(count($args) === 0){
 			throw new InvalidCommandSyntaxException();
 		}

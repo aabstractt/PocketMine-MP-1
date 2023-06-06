@@ -29,7 +29,6 @@ use pocketmine\plugin\Plugin;
 use pocketmine\Server;
 use pocketmine\utils\Binary;
 use pocketmine\utils\Utils;
-use function array_map;
 use function chr;
 use function count;
 use function str_replace;
@@ -42,7 +41,7 @@ final class QueryInfo{
 	private bool $listPlugins;
 	/** @var Plugin[] */
 	private array $plugins;
-	/** @var string[] */
+	/** @var Player[] */
 	private array $players;
 
 	private string $gametype;
@@ -68,7 +67,7 @@ final class QueryInfo{
 		$this->serverName = $server->getMotd();
 		$this->listPlugins = $server->getConfigGroup()->getPropertyBool("settings.query-plugins", true);
 		$this->plugins = $server->getPluginManager()->getPlugins();
-		$this->players = array_map(fn(Player $p) => $p->getName(), $server->getOnlinePlayers());
+		$this->players = $server->getOnlinePlayers();
 
 		$this->gametype = ($server->getGamemode()->equals(GameMode::SURVIVAL()) || $server->getGamemode()->equals(GameMode::ADVENTURE())) ? "SMP" : "CMP";
 		$this->version = $server->getVersion();
@@ -123,17 +122,17 @@ final class QueryInfo{
 	}
 
 	/**
-	 * @return string[]
+	 * @return Player[]
 	 */
 	public function getPlayerList() : array{
 		return $this->players;
 	}
 
 	/**
-	 * @param string[] $players
+	 * @param Player[] $players
 	 */
 	public function setPlayerList(array $players) : void{
-		Utils::validateArrayValueType($players, function(string $_) : void{});
+		Utils::validateArrayValueType($players, function(Player $_) : void{});
 		$this->players = $players;
 		$this->destroyCache();
 	}
@@ -227,7 +226,7 @@ final class QueryInfo{
 
 		$query .= "\x00\x01player_\x00\x00";
 		foreach($this->players as $player){
-			$query .= $player . "\x00";
+			$query .= $player->getName() . "\x00";
 		}
 		$query .= "\x00";
 

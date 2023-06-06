@@ -69,7 +69,7 @@ class PermissibleInternal implements Permissible{
 		$this->recalculatePermissions();
 	}
 
-	public function setBasePermission(Permission|string $name, bool $grant) : void{
+	public function setBasePermission($name, bool $grant) : void{
 		if($name instanceof Permission){
 			$name = $name->getName();
 		}
@@ -77,16 +77,22 @@ class PermissibleInternal implements Permissible{
 		$this->recalculatePermissions();
 	}
 
-	public function unsetBasePermission(Permission|string $name) : void{
+	public function unsetBasePermission($name) : void{
 		unset($this->rootPermissions[$name instanceof Permission ? $name->getName() : $name]);
 		$this->recalculatePermissions();
 	}
 
-	public function isPermissionSet(Permission|string $name) : bool{
+	/**
+	 * @param Permission|string $name
+	 */
+	public function isPermissionSet($name) : bool{
 		return isset($this->permissions[$name instanceof Permission ? $name->getName() : $name]);
 	}
 
-	public function hasPermission(Permission|string $name) : bool{
+	/**
+	 * @param Permission|string $name
+	 */
+	public function hasPermission($name) : bool{
 		if($name instanceof Permission){
 			$name = $name->getName();
 		}

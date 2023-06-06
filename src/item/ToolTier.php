@@ -34,7 +34,6 @@ use pocketmine\utils\EnumTrait;
  * @method static ToolTier DIAMOND()
  * @method static ToolTier GOLD()
  * @method static ToolTier IRON()
- * @method static ToolTier NETHERITE()
  * @method static ToolTier STONE()
  * @method static ToolTier WOOD()
  */
@@ -49,8 +48,7 @@ final class ToolTier{
 			new self("gold", 2, 33, 5, 12),
 			new self("stone", 3, 132, 6, 4),
 			new self("iron", 4, 251, 7, 6),
-			new self("diamond", 5, 1562, 8, 8),
-			new self("netherite", 6, 2032, 9, 9)
+			new self("diamond", 5, 1562, 8, 8)
 		);
 	}
 

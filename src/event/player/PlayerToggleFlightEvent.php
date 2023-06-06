@@ -30,11 +30,12 @@ use pocketmine\player\Player;
 class PlayerToggleFlightEvent extends PlayerEvent implements Cancellable{
 	use CancellableTrait;
 
-	public function __construct(
-		Player $player,
-		protected bool $isFlying
-	){
+	/** @var bool */
+	protected $isFlying;
+
+	public function __construct(Player $player, bool $isFlying){
 		$this->player = $player;
+		$this->isFlying = $isFlying;
 	}
 
 	public function isFlying() : bool{

@@ -31,9 +31,12 @@ use pocketmine\inventory\Inventory;
 use pocketmine\player\Player;
 
 abstract class InventoryEvent extends Event{
-	public function __construct(
-		protected Inventory $inventory
-	){}
+	/** @var Inventory */
+	protected $inventory;
+
+	public function __construct(Inventory $inventory){
+		$this->inventory = $inventory;
+	}
 
 	public function getInventory() : Inventory{
 		return $this->inventory;

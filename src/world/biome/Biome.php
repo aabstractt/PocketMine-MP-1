@@ -44,8 +44,10 @@ abstract class Biome{
 	/** @var Block[] */
 	private array $groundCover = [];
 
-	protected float $rainfall = 0.5;
-	protected float $temperature = 0.5;
+	/** @var float */
+	protected $rainfall = 0.5;
+	/** @var float */
+	protected $temperature = 0.5;
 
 	public function clearPopulators() : void{
 		$this->populators = [];

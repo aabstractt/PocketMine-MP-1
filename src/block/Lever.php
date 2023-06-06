@@ -24,7 +24,6 @@ declare(strict_types=1);
 namespace pocketmine\block;
 
 use pocketmine\block\utils\LeverFacing;
-use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\item\Item;
 use pocketmine\math\Axis;
 use pocketmine\math\Facing;
@@ -39,14 +38,40 @@ class Lever extends Flowable{
 	protected LeverFacing $facing;
 	protected bool $activated = false;
 
-	public function __construct(BlockIdentifier $idInfo, string $name, BlockTypeInfo $typeInfo){
+	public function __construct(BlockIdentifier $idInfo, string $name, BlockBreakInfo $breakInfo){
 		$this->facing = LeverFacing::UP_AXIS_X();
-		parent::__construct($idInfo, $name, $typeInfo);
+		parent::__construct($idInfo, $name, $breakInfo);
 	}
 
-	protected function describeBlockOnlyState(RuntimeDataDescriber $w) : void{
-		$w->leverFacing($this->facing);
-		$w->bool($this->activated);
+	protected function writeStateToMeta() : int{
+		$rotationMeta = match($this->facing->id()){
+			LeverFacing::DOWN_AXIS_X()->id() => 0,
+			LeverFacing::EAST()->id() => 1,
+			LeverFacing::WEST()->id() => 2,
+			LeverFacing::SOUTH()->id() => 3,
+			LeverFacing::NORTH()->id() => 4,
+			LeverFacing::UP_AXIS_Z()->id() => 5,
+			LeverFacing::UP_AXIS_X()->id() => 6,
+			LeverFacing::DOWN_AXIS_Z()->id() => 7,
+			default => throw new AssumptionFailedError(),
+		};
+		return $rotationMeta | ($this->activated ? BlockLegacyMetadata::LEVER_FLAG_POWERED : 0);
+	}
+
+	public function readStateFromData(int $id, int $stateMeta) : void{
+		$rotationMeta = $stateMeta & 0x07;
+		$this->facing = match($rotationMeta){
+			0 => LeverFacing::DOWN_AXIS_X(),
+			1 => LeverFacing::EAST(),
+			2 => LeverFacing::WEST(),
+			3 => LeverFacing::SOUTH(),
+			4 => LeverFacing::NORTH(),
+			5 => LeverFacing::UP_AXIS_Z(),
+			6 => LeverFacing::UP_AXIS_X(),
+			7 => LeverFacing::DOWN_AXIS_Z(),
+		};
+
+		$this->activated = ($stateMeta & BlockLegacyMetadata::LEVER_FLAG_POWERED) !== 0;
 	}
 
 	public function getFacing() : LeverFacing{ return $this->facing; }
@@ -63,6 +88,10 @@ class Lever extends Flowable{
 	public function setActivated(bool $activated) : self{
 		$this->activated = $activated;
 		return $this;
+	}
+
+	public function getStateBitmask() : int{
+		return 0b1111;
 	}
 
 	public function place(BlockTransaction $tx, Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
@@ -96,7 +125,7 @@ class Lever extends Flowable{
 		}
 	}
 
-	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null, array &$returnedItems = []) : bool{
+	public function onInteract(Item $item, int $face, Vector3 $clickVector, ?Player $player = null) : bool{
 		$this->activated = !$this->activated;
 		$world = $this->position->getWorld();
 		$world->setBlock($this->position, $this);

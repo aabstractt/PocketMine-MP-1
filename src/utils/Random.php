@@ -40,7 +40,8 @@ class Random{
 	private int $z;
 	private int $w;
 
-	protected int $seed;
+	/** @var int */
+	protected $seed;
 
 	/**
 	 * @param int $seed Integer to be used as seed.

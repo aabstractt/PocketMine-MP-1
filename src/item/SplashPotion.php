@@ -23,7 +23,6 @@ declare(strict_types=1);
 
 namespace pocketmine\item;
 
-use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\entity\Location;
 use pocketmine\entity\projectile\SplashPotion as SplashPotionEntity;
 use pocketmine\entity\projectile\Throwable;
@@ -33,24 +32,12 @@ class SplashPotion extends ProjectileItem{
 
 	private PotionType $potionType;
 
-	public function __construct(ItemIdentifier $identifier, string $name){
-		$this->potionType = PotionType::WATER();
+	public function __construct(ItemIdentifier $identifier, string $name, PotionType $potionType){
 		parent::__construct($identifier, $name);
-	}
-
-	protected function describeState(RuntimeDataDescriber $w) : void{
-		$w->potionType($this->potionType);
+		$this->potionType = $potionType;
 	}
 
 	public function getType() : PotionType{ return $this->potionType; }
-
-	/**
-	 * @return $this
-	 */
-	public function setType(PotionType $type) : self{
-		$this->potionType = $type;
-		return $this;
-	}
 
 	public function getMaxStackSize() : int{
 		return 1;

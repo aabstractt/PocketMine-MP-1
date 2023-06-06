@@ -112,11 +112,17 @@ class BrewingStand extends Spawnable implements Container, Nameable{
 		}
 	}
 
-	public function getInventory() : BrewingStandInventory{
+	/**
+	 * @return BrewingStandInventory
+	 */
+	public function getInventory(){
 		return $this->inventory;
 	}
 
-	public function getRealInventory() : BrewingStandInventory{
+	/**
+	 * @return BrewingStandInventory
+	 */
+	public function getRealInventory(){
 		return $this->inventory;
 	}
 

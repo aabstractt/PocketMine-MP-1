@@ -28,13 +28,7 @@ use pocketmine\utils\ObjectSet;
 
 final class FurnaceRecipeManager{
 	/** @var FurnaceRecipe[] */
-	protected array $furnaceRecipes = [];
-
-	/**
-	 * @var FurnaceRecipe[]
-	 * @phpstan-var array<int, FurnaceRecipe>
-	 */
-	private array $lookupCache = [];
+	protected $furnaceRecipes = [];
 
 	/** @phpstan-var ObjectSet<\Closure(FurnaceRecipe) : void> */
 	private ObjectSet $recipeRegisteredCallbacks;
@@ -58,27 +52,14 @@ final class FurnaceRecipeManager{
 	}
 
 	public function register(FurnaceRecipe $recipe) : void{
-		$this->furnaceRecipes[] = $recipe;
+		$input = $recipe->getInput();
+		$this->furnaceRecipes[$input->getId() . ":" . ($input->hasAnyDamageValue() ? "?" : $input->getMeta())] = $recipe;
 		foreach($this->recipeRegisteredCallbacks as $callback){
 			$callback($recipe);
 		}
 	}
 
 	public function match(Item $input) : ?FurnaceRecipe{
-		$index = $input->getStateId();
-		$simpleRecipe = $this->lookupCache[$index] ?? null;
-		if($simpleRecipe !== null){
-			return $simpleRecipe;
-		}
-
-		foreach($this->furnaceRecipes as $recipe){
-			if($recipe->getInput()->accepts($input)){
-				//remember that this item is accepted by this recipe, so we don't need to bruteforce it again
-				$this->lookupCache[$index] = $recipe;
-				return $recipe;
-			}
-		}
-
-		return null;
+		return $this->furnaceRecipes[$input->getId() . ":" . $input->getMeta()] ?? $this->furnaceRecipes[$input->getId() . ":?"] ?? null;
 	}
 }

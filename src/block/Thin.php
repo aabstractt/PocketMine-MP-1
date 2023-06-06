@@ -36,7 +36,7 @@ class Thin extends Transparent{
 	/** @var bool[] facing => dummy */
 	protected array $connections = [];
 
-	public function readStateFromWorld() : Block{
+	public function readStateFromWorld() : void{
 		parent::readStateFromWorld();
 
 		foreach(Facing::HORIZONTAL as $facing){
@@ -47,8 +47,6 @@ class Thin extends Transparent{
 				unset($this->connections[$facing]);
 			}
 		}
-
-		return $this;
 	}
 
 	protected function recalculateCollisionBoxes() : array{

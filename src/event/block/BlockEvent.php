@@ -30,9 +30,12 @@ use pocketmine\block\Block;
 use pocketmine\event\Event;
 
 abstract class BlockEvent extends Event{
-	public function __construct(
-		protected Block $block
-	){}
+	/** @var Block */
+	protected $block;
+
+	public function __construct(Block $block){
+		$this->block = $block;
+	}
 
 	public function getBlock() : Block{
 		return $this->block;

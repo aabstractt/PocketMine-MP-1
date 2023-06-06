@@ -53,12 +53,15 @@ use pocketmine\network\mcpe\compression\CompressBatchPromise;
 use pocketmine\network\mcpe\compression\CompressBatchTask;
 use pocketmine\network\mcpe\compression\Compressor;
 use pocketmine\network\mcpe\compression\ZlibCompressor;
-use pocketmine\network\mcpe\convert\TypeConverter;
+use pocketmine\network\mcpe\convert\GlobalItemTypeDictionary;
 use pocketmine\network\mcpe\encryption\EncryptionContext;
 use pocketmine\network\mcpe\EntityEventBroadcaster;
+use pocketmine\network\mcpe\NetworkBroadcastUtils;
 use pocketmine\network\mcpe\NetworkSession;
 use pocketmine\network\mcpe\PacketBroadcaster;
+use pocketmine\network\mcpe\protocol\ClientboundPacket;
 use pocketmine\network\mcpe\protocol\ProtocolInfo;
+use pocketmine\network\mcpe\protocol\serializer\PacketBatch;
 use pocketmine\network\mcpe\protocol\serializer\PacketSerializerContext;
 use pocketmine\network\mcpe\raklib\RakLibInterface;
 use pocketmine\network\mcpe\StandardEntityEventBroadcaster;
@@ -92,8 +95,6 @@ use pocketmine\resourcepacks\ResourcePackManager;
 use pocketmine\scheduler\AsyncPool;
 use pocketmine\snooze\SleeperHandler;
 use pocketmine\stats\SendUsageTask;
-use pocketmine\thread\log\AttachableThreadSafeLogger;
-use pocketmine\thread\ThreadSafeClassLoader;
 use pocketmine\timings\Timings;
 use pocketmine\timings\TimingsHandler;
 use pocketmine\updater\UpdateChecker;
@@ -415,11 +416,11 @@ class Server{
 		return $this->configGroup->getConfigString("motd", self::DEFAULT_SERVER_NAME);
 	}
 
-	public function getLoader() : ThreadSafeClassLoader{
+	public function getLoader() : \DynamicClassLoader{
 		return $this->autoloader;
 	}
 
-	public function getLogger() : AttachableThreadSafeLogger{
+	public function getLogger() : \AttachableThreadedLogger{
 		return $this->logger;
 	}
 
@@ -498,7 +499,10 @@ class Server{
 		return $this->configGroup->getPropertyBool("player.save-player-data", true);
 	}
 
-	public function getOfflinePlayer(string $name) : Player|OfflinePlayer|null{
+	/**
+	 * @return OfflinePlayer|Player
+	 */
+	public function getOfflinePlayer(string $name){
 		$name = strtolower($name);
 		$result = $this->getPlayerExact($name);
 
@@ -587,7 +591,8 @@ class Server{
 				},
 				function() use ($playerPromiseResolver, $session) : void{
 					if($session->isConnected()){
-						$session->disconnectWithError(KnownTranslationFactory::pocketmine_disconnect_error_respawn());
+						//TODO: this needs to be localized - this might be reached if the spawn world was unloaded while the player was logging in
+						$session->disconnect("Failed to find a safe spawn location");
 					}
 					$playerPromiseResolver->reject();
 				}
@@ -761,8 +766,8 @@ class Server{
 	}
 
 	public function __construct(
-		private ThreadSafeClassLoader $autoloader,
-		private AttachableThreadSafeLogger $logger,
+		private \DynamicClassLoader $autoloader,
+		private \AttachableThreadedLogger $logger,
 		string $dataPath,
 		string $pluginPath
 	){
@@ -969,7 +974,7 @@ class Server{
 
 			$this->commandMap = new SimpleCommandMap($this);
 
-			$this->craftingManager = CraftingManagerFromDataHelper::make(Path::join(\pocketmine\BEDROCK_DATA_PATH, "recipes"));
+			$this->craftingManager = CraftingManagerFromDataHelper::make(Path::join(\pocketmine\RESOURCE_PATH, "legacy_recipes.json"));
 
 			$this->resourceManager = new ResourcePackManager(Path::join($this->getDataPath(), "resource_packs"), $this->logger);
 
@@ -1183,12 +1188,11 @@ class Server{
 		bool $useQuery,
 		PacketBroadcaster $packetBroadcaster,
 		EntityEventBroadcaster $entityEventBroadcaster,
-		PacketSerializerContext $packetSerializerContext,
-		TypeConverter $typeConverter
+		PacketSerializerContext $packetSerializerContext
 	) : bool{
 		$prettyIp = $ipV6 ? "[$ip]" : $ip;
 		try{
-			$rakLibRegistered = $this->network->registerInterface(new RakLibInterface($this, $ip, $port, $ipV6, $packetBroadcaster, $entityEventBroadcaster, $packetSerializerContext, $typeConverter));
+			$rakLibRegistered = $this->network->registerInterface(new RakLibInterface($this, $ip, $port, $ipV6, $packetBroadcaster, $entityEventBroadcaster, $packetSerializerContext));
 		}catch(NetworkInterfaceStartException $e){
 			$this->logger->emergency($this->language->translate(KnownTranslationFactory::pocketmine_server_networkStartFailed(
 				$ip,
@@ -1214,16 +1218,15 @@ class Server{
 	private function startupPrepareNetworkInterfaces() : bool{
 		$useQuery = $this->configGroup->getConfigBool("enable-query", true);
 
-		$typeConverter = TypeConverter::getInstance();
-		$packetSerializerContext = new PacketSerializerContext($typeConverter->getItemTypeDictionary());
+		$packetSerializerContext = new PacketSerializerContext(GlobalItemTypeDictionary::getInstance()->getDictionary());
 		$packetBroadcaster = new StandardPacketBroadcaster($this, $packetSerializerContext);
-		$entityEventBroadcaster = new StandardEntityEventBroadcaster($packetBroadcaster, $typeConverter);
+		$entityEventBroadcaster = new StandardEntityEventBroadcaster($packetBroadcaster);
 
 		if(
-			!$this->startupPrepareConnectableNetworkInterfaces($this->getIp(), $this->getPort(), false, $useQuery, $packetBroadcaster, $entityEventBroadcaster, $packetSerializerContext, $typeConverter) ||
+			!$this->startupPrepareConnectableNetworkInterfaces($this->getIp(), $this->getPort(), false, $useQuery, $packetBroadcaster, $entityEventBroadcaster, $packetSerializerContext) ||
 			(
 				$this->configGroup->getConfigBool("enable-ipv6", true) &&
-				!$this->startupPrepareConnectableNetworkInterfaces($this->getIpV6(), $this->getPortV6(), true, $useQuery, $packetBroadcaster, $entityEventBroadcaster, $packetSerializerContext, $typeConverter)
+				!$this->startupPrepareConnectableNetworkInterfaces($this->getIpV6(), $this->getPortV6(), true, $useQuery, $packetBroadcaster, $entityEventBroadcaster, $packetSerializerContext)
 			)
 		){
 			return false;
@@ -1355,18 +1358,29 @@ class Server{
 	}
 
 	/**
+	 * @param Player[]            $players
+	 * @param ClientboundPacket[] $packets
+	 * @deprecated
+	 */
+	public function broadcastPackets(array $players, array $packets) : bool{
+		return NetworkBroadcastUtils::broadcastPackets($players, $packets);
+	}
+
+	/**
 	 * Broadcasts a list of packets in a batch to a list of players
 	 *
 	 * @param bool|null $sync Compression on the main thread (true) or workers (false). Default is automatic (null).
 	 */
-	public function prepareBatch(string $buffer, Compressor $compressor, ?bool $sync = null, ?TimingsHandler $timings = null) : CompressBatchPromise{
+	public function prepareBatch(PacketBatch $stream, Compressor $compressor, ?bool $sync = null, ?TimingsHandler $timings = null) : CompressBatchPromise{
 		$timings ??= Timings::$playerNetworkSendCompress;
 		try{
 			$timings->startTiming();
 
+			$buffer = $stream->getBuffer();
+
 			if($sync === null){
 				$threshold = $compressor->getCompressionThreshold();
-				$sync = !$this->networkCompressionAsync || $threshold === null || strlen($buffer) < $threshold;
+				$sync = !$this->networkCompressionAsync || $threshold === null || strlen($stream->getBuffer()) < $threshold;
 			}
 
 			$promise = new CompressBatchPromise();
@@ -1510,7 +1524,7 @@ class Server{
 	 * @param mixed[][]|null $trace
 	 * @phpstan-param list<array<string, mixed>>|null $trace
 	 */
-	public function exceptionHandler(\Throwable $e, ?array $trace = null) : void{
+	public function exceptionHandler(\Throwable $e, $trace = null) : void{
 		while(@ob_end_flush()){}
 		global $lastError;
 

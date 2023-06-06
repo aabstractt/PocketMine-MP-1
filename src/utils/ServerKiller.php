@@ -27,11 +27,18 @@ use pocketmine\thread\Thread;
 use function time;
 
 class ServerKiller extends Thread{
+
+	/** @var int */
+	public $time;
+
 	private bool $stopped = false;
 
-	public function __construct(
-		public int $time = 15
-	){}
+	/**
+	 * @param int $time
+	 */
+	public function __construct($time = 15){
+		$this->time = $time;
+	}
 
 	protected function onRun() : void{
 		$start = time();

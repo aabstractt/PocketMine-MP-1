@@ -31,25 +31,29 @@ use pocketmine\permission\DefaultPermissionNames;
 use pocketmine\player\Player;
 use pocketmine\world\World;
 use function count;
+use function implode;
 
 class TimeCommand extends VanillaCommand{
 
-	public function __construct(){
+	public function __construct(string $name){
 		parent::__construct(
-			"time",
+			$name,
 			KnownTranslationFactory::pocketmine_command_time_description(),
 			KnownTranslationFactory::pocketmine_command_time_usage()
 		);
-		$this->setPermissions([
+		$this->setPermission(implode(";", [
 			DefaultPermissionNames::COMMAND_TIME_ADD,
 			DefaultPermissionNames::COMMAND_TIME_SET,
 			DefaultPermissionNames::COMMAND_TIME_START,
 			DefaultPermissionNames::COMMAND_TIME_STOP,
 			DefaultPermissionNames::COMMAND_TIME_QUERY
-		]);
+		]));
 	}
 
 	public function execute(CommandSender $sender, string $commandLabel, array $args){
+		if(!$this->testPermission($sender)){
+			return true;
+		}
 		if(count($args) < 1){
 			throw new InvalidCommandSyntaxException();
 		}

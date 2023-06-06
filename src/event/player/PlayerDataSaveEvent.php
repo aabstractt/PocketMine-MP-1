@@ -35,11 +35,19 @@ use pocketmine\player\Player;
 class PlayerDataSaveEvent extends Event implements Cancellable{
 	use CancellableTrait;
 
+	/** @var CompoundTag */
+	protected $data;
+	/** @var string */
+	protected $playerName;
+
 	public function __construct(
-		protected CompoundTag $data,
-		protected string $playerName,
+		CompoundTag $nbt,
+		string $playerName,
 		private ?Player $player
-	){}
+	){
+		$this->data = $nbt;
+		$this->playerName = $playerName;
+	}
 
 	/**
 	 * Returns the data to be written to disk as a CompoundTag

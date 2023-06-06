@@ -29,7 +29,6 @@ use pocketmine\block\utils\BannerPatternLayer;
 use pocketmine\block\utils\DyeColor;
 use pocketmine\data\bedrock\BannerPatternTypeIdMap;
 use pocketmine\data\bedrock\DyeColorIdMap;
-use pocketmine\data\runtime\RuntimeDataDescriber;
 use pocketmine\nbt\NBT;
 use pocketmine\nbt\tag\CompoundTag;
 use pocketmine\nbt\tag\ListTag;
@@ -63,8 +62,8 @@ class Banner extends ItemBlockWallOrFloor{
 		return $this;
 	}
 
-	protected function describeState(RuntimeDataDescriber $w) : void{
-		$w->dyeColor($this->color);
+	public function getMeta() : int{
+		return DyeColorIdMap::getInstance()->toInvertedId($this->color);
 	}
 
 	/**
