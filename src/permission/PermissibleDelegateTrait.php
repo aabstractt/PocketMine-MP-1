@@ -29,7 +29,7 @@ use pocketmine\utils\ObjectSet;
 trait PermissibleDelegateTrait{
 
 	/** @var Permissible */
-	private $perm;
+	public $perm;
 
 	/**
 	 * @param Permission|string $name
