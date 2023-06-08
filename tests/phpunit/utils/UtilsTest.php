@@ -44,7 +44,7 @@ class UtilsTest extends TestCase{
 	 * @return string[][]
 	 * @phpstan-return list<array{string}>
 	 */
-	public static function parseDocCommentNewlineProvider() : array{
+	public function parseDocCommentNewlineProvider() : array{
 		return [
 			["\t/**\r\n\t * @param PlayerJoinEvent \$event\r\n\t * @priority HIGHEST\r\n\t * @notHandler\r\n\t */"],
 			["\t/**\n\t * @param PlayerJoinEvent \$event\n\t * @priority HIGHEST\n\t * @notHandler\n\t */"],
@@ -68,7 +68,7 @@ class UtilsTest extends TestCase{
 	 * @return string[][]
 	 * @phpstan-return list<array{string}>
 	 */
-	public static function parseDocCommentOneLineProvider() : array{
+	public function parseDocCommentOneLineProvider() : array{
 		return [
 			["/** @ignoreCancelled true dummy */"],
 			["/**@ignoreCancelled true dummy*/"],
@@ -105,7 +105,7 @@ class UtilsTest extends TestCase{
 	 * @return string[][]
 	 * @return list<array{class-string, class-string}>
 	 */
-	public static function validInstanceProvider() : array{
+	public function validInstanceProvider() : array{
 		return [
 			//direct instance / implement / extend
 			[TestInstantiableClass::class, TestInstantiableClass::class],
@@ -133,7 +133,7 @@ class UtilsTest extends TestCase{
 	 * @return string[][]
 	 * @return list<array{string, string}>
 	 */
-	public static function validInstanceInvalidCombinationsProvider() : array{
+	public function validInstanceInvalidCombinationsProvider() : array{
 		return [
 			["iDontExist abc", TestInstantiableClass::class],
 			[TestInstantiableClass::class, "iDon'tExist abc"],
